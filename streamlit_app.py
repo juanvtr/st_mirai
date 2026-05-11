@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from snowflake.snowpark.context import get_active_session
+import snowflake.connector
 
 st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide", initial_sidebar_state="expanded")
-
-session = get_active_session()
 
 DEPT_MAP = {
     'Pamela Antunes': 'Inside Sales', 'Debora Paes': 'Inside Sales',
@@ -121,7 +119,18 @@ st.markdown(f"""
 
 @st.cache_data(ttl=300)
 def load_data():
-    df = session.sql("SELECT * FROM MIRAI.PUBLIC.RELATORIO_COMPLETO").to_pandas()
+    conn = snowflake.connector.connect(
+        account=st.secrets["snowflake"]["account"],
+        user=st.secrets["snowflake"]["user"],
+        password=st.secrets["snowflake"]["password"],
+        warehouse=st.secrets["snowflake"]["warehouse"],
+        database=st.secrets["snowflake"]["database"],
+        schema=st.secrets["snowflake"]["schema"],
+    )
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM MIRAI.PUBLIC.RELATORIO_COMPLETO")
+    df = cur.fetch_pandas_all()
+    conn.close()
     df['DEPARTAMENTO'] = df['RESPONSAVEL'].map(DEPT_MAP).fillna('Outros')
     df['VALOR_PRODUTO'] = pd.to_numeric(df['VALOR_PRODUTO'], errors='coerce').fillna(0)
     df['LINHAS'] = pd.to_numeric(df['LINHAS'], errors='coerce').fillna(0)
@@ -137,7 +146,7 @@ def card(title, value, sub="", accent=False):
 with st.sidebar:
     st.markdown("### Filtros")
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
-    mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
+    mes_sel = st.selectbox("Mes", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
     dept_sel = st.multiselect("Departamento", depts, default=depts)
     torres = sorted(df['TORRE'].unique())
@@ -156,19 +165,16 @@ tab1, tab2, tab3, tab4 = st.tabs(["Visao Geral", "Produtos", "Buscar Pedido", "D
 
 with tab1:
     st.markdown("## Visao Geral")
-
     total = df_f['VALOR_PRODUTO'].sum()
     mig = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
     novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
     regs = len(df_f)
-
     mov_mig = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
     mov_nov = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
     fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
     fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
     avanc = df_f[df_f['TORRE'] == 'Avançados']['VALOR_PRODUTO'].sum()
     ti = df_f[df_f['TORRE'] == 'TI']['VALOR_PRODUTO'].sum()
-
     mov_mig_reg = len(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
     mov_nov_reg = len(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')])
     fix_mig_reg = len(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
@@ -208,14 +214,14 @@ with tab1:
         if avanc_reg > 0:
             av_prods = df_f[df_f['TORRE'] == 'Avançados'].groupby('PRODUTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).head(5)
             for prod, val in av_prods.items():
-                st.markdown(f"<div style='color:#aaa;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{PA}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#555;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{P}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
     with ca2:
         ti_reg = len(df_f[df_f['TORRE'] == 'TI'])
         st.markdown(card("TI / Digitais", f"R${ti:,.2f}", f"{ti_reg} reg"), unsafe_allow_html=True)
         if ti_reg > 0:
             ti_prods = df_f[df_f['TORRE'] == 'TI'].groupby('PRODUTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).head(5)
             for prod, val in ti_prods.items():
-                st.markdown(f"<div style='color:#aaa;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{PA}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color:#555;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{P}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("#### Ranking por Departamento")
@@ -230,17 +236,14 @@ with tab1:
 
 with tab2:
     st.markdown("## Produtos Mais Vendidos")
-
     torre_prod = st.selectbox("Filtrar por Torre", ["Todas"] + list(torres), key="torre_prod")
     df_prod = df_f if torre_prod == "Todas" else df_f[df_f['TORRE'] == torre_prod]
 
     col_p1, col_p2 = st.columns(2)
-
     with col_p1:
         st.markdown("#### Top Produtos - Migracao")
         prods_mig = df_prod[df_prod['TIPO_VENDA'] == 'MIGRAÇÃO'].groupby('PRODUTO').agg(
-            VALOR=('VALOR_PRODUTO', 'sum'),
-            QTD=('VALOR_PRODUTO', 'count')
+            VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
         ).sort_values('VALOR', ascending=False).head(15)
         for i, (prod, row) in enumerate(prods_mig.iterrows(), 1):
             st.markdown(f"""<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;">
@@ -253,8 +256,7 @@ with tab2:
     with col_p2:
         st.markdown("#### Top Produtos - Novo")
         prods_nov = df_prod[df_prod['TIPO_VENDA'] == 'NOVO'].groupby('PRODUTO').agg(
-            VALOR=('VALOR_PRODUTO', 'sum'),
-            QTD=('VALOR_PRODUTO', 'count')
+            VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
         ).sort_values('VALOR', ascending=False).head(15)
         for i, (prod, row) in enumerate(prods_nov.iterrows(), 1):
             st.markdown(f"""<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;">
@@ -265,7 +267,7 @@ with tab2:
             </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("#### Avancados - Detalhamento por Produto")
+    st.markdown("#### Avancados - Detalhamento")
     av_detail = df_f[df_f['TORRE'] == 'Avançados'].groupby(['PRODUTO', 'TIPO_VENDA']).agg(
         VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
     ).sort_values('VALOR', ascending=False).reset_index()
@@ -274,7 +276,7 @@ with tab2:
     else:
         st.info("Sem dados de Avancados no filtro atual")
 
-    st.markdown("#### TI / Digitais - Detalhamento por Produto")
+    st.markdown("#### TI / Digitais - Detalhamento")
     ti_detail = df_f[df_f['TORRE'] == 'TI'].groupby(['PRODUTO', 'TIPO_VENDA']).agg(
         VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
     ).sort_values('VALOR', ascending=False).reset_index()
@@ -318,7 +320,6 @@ with tab3:
 with tab4:
     st.markdown("## Dados Completos")
     st.markdown(f"**{len(df_f)} registros** no filtro atual")
-
     col_d1, col_d2, col_d3 = st.columns(3)
     with col_d1:
         st.markdown(card("Registros", f"{len(df_f)}", "no filtro"), unsafe_allow_html=True)
