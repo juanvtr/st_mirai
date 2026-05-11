@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import snowflake.connector
+from snowflake.snowpark.context import get_active_session
 
-st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide")
+st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide", initial_sidebar_state="expanded")
+
+session = get_active_session()
 
 DEPT_MAP = {
     'Pamela Antunes': 'Inside Sales', 'Debora Paes': 'Inside Sales',
@@ -50,8 +52,7 @@ DEPT_MAP = {
     'Adriana Campos': 'Time Jéssica', 'Paulo Felix': 'Time Jéssica',
     'Marcelo Ferreira': 'Time Jéssica', 'Danilo Soares': 'Time Jéssica',
     'Eliana Barbosa': 'Time Jéssica', 'Paulo Roberto': 'Time Jéssica',
-    'Elias Polinario': 'Time Jéssica',
-    'maria cristina duarte': 'Time Jéssica',
+    'Elias Polinario': 'Time Jéssica', 'maria cristina duarte': 'Time Jéssica',
     'Beto Prado': 'Gerência Beto', 'RONALD MARTINS': 'Gerência Beto',
     'Thiago Calister': 'Gerência Beto', 'Jefferson Lucena': 'Gerência Beto',
     'Luiz Fernando Castro Figueiredo': 'Gerência Beto',
@@ -62,8 +63,7 @@ DEPT_MAP = {
     'Luan Alves': 'Time Luan', 'Gisleine Palmeiras': 'Time Luan',
     'Adriana Santana': 'Time Luan', 'Adriana Pereira': 'Time Luan',
     'Rodrigo Farias': 'Time Xiscatti', 'Thamer Camelo': 'Time Xiscatti',
-    'Fernando Xiscatti': 'Time Xiscatti',
-    'Xiscatti Liberty Consulting': 'Time Xiscatti',
+    'Fernando Xiscatti': 'Time Xiscatti', 'Xiscatti Liberty Consulting': 'Time Xiscatti',
     'Raquel Macedo': 'Calister', 'Luciene de Oliveira Ferreira': 'Calister',
     'Deisy Ponte': 'Calister',
     'Luis Lopes': 'Time de Tramitação', 'Stela Maira': 'Time de Tramitação',
@@ -72,71 +72,56 @@ DEPT_MAP = {
 }
 
 P = '#7B2FF7'
-PA = '#C77DFF'
-BG = '#1a1a2e'
-CARD = '#16213e'
+P2 = '#9D4EDD'
+PA = '#5A189A'
+PL = '#E0AAFF'
+BG = '#ffffff'
+CARD = '#f8f6ff'
 
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {BG}; }}
-    .metric-card {{
+    .card {{
         background: {CARD};
-        border: 2px solid {P};
+        border: 1px solid #e8e0f7;
         border-radius: 12px;
-        padding: 16px 12px;
+        padding: 18px 14px;
         text-align: center;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        border-left: 4px solid {P};
+        box-shadow: 0 2px 8px rgba(123,47,247,0.06);
     }}
-    .metric-card-accent {{
-        background: {CARD};
-        border: 2px solid {PA};
+    .card-accent {{
+        background: linear-gradient(135deg, #f3e8ff, #ede0ff);
+        border: 1px solid #d4b8ff;
         border-radius: 12px;
-        padding: 16px 12px;
+        padding: 18px 14px;
         text-align: center;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        border-left: 4px solid {P2};
+        box-shadow: 0 2px 8px rgba(157,78,221,0.1);
     }}
-    .metric-title {{ color: #aaa; font-size: 12px; font-weight: bold; text-transform: uppercase; }}
-    .metric-value {{ color: #fff; font-size: 24px; font-weight: bold; margin: 6px 0; }}
-    .metric-sub {{ color: {PA}; font-size: 11px; }}
-    h1, h2, h3 {{ color: #fff !important; }}
-    .stSelectbox label, .stMultiSelect label {{ color: #fff !important; }}
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stMultiSelect div[data-baseweb="select"] > div {{
-        background-color: {CARD} !important;
-        border-color: {P} !important;
-    }}
+    .card-title {{ color: #666; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }}
+    .card-value {{ color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 6px 0; }}
+    .card-sub {{ color: {P}; font-size: 10px; }}
+    h1, h2, h3 {{ color: #1a1a2e !important; }}
+    .stSelectbox label, .stMultiSelect label, .stTextInput label {{ color: #333 !important; }}
     .stMultiSelect span[data-baseweb="tag"] {{
         background-color: {P} !important;
         color: white !important;
     }}
-    .stMultiSelect span[data-baseweb="tag"] span[role="presentation"] {{
-        color: white !important;
-    }}
-    div[data-baseweb="popover"] li {{
-        background-color: {CARD} !important;
-        color: white !important;
-    }}
-    div[data-baseweb="popover"] li:hover {{
-        background-color: {P} !important;
-    }}
-    .stMarkdown hr {{ border-color: #333 !important; }}
+    div[data-baseweb="popover"] li:hover {{ background-color: #f3e8ff !important; }}
+    .stTabs [data-baseweb="tab-list"] {{ background-color: #f3f0fa; border-radius: 8px; }}
+    .stTabs [data-baseweb="tab"] {{ color: #666 !important; }}
+    .stTabs [aria-selected="true"] {{ color: white !important; background-color: {P} !important; border-radius: 6px; }}
+    .stMarkdown hr {{ border-color: #e8e0f7 !important; }}
+    section[data-testid="stSidebar"] {{ background-color: #f9f7fe !important; }}
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=300)
 def load_data():
-    conn = snowflake.connector.connect(
-        account=st.secrets["snowflake"]["account"],
-        user=st.secrets["snowflake"]["user"],
-        password=st.secrets["snowflake"]["password"],
-        warehouse=st.secrets["snowflake"]["warehouse"],
-        database=st.secrets["snowflake"]["database"],
-        schema=st.secrets["snowflake"]["schema"],
-    )
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM MIRAI.PUBLIC.RELATORIO_COMPLETO")
-    df = cur.fetch_pandas_all()
-    conn.close()
+    df = session.sql("SELECT * FROM MIRAI.PUBLIC.RELATORIO_COMPLETO").to_pandas()
     df['DEPARTAMENTO'] = df['RESPONSAVEL'].map(DEPT_MAP).fillna('Outros')
     df['VALOR_PRODUTO'] = pd.to_numeric(df['VALOR_PRODUTO'], errors='coerce').fillna(0)
     df['LINHAS'] = pd.to_numeric(df['LINHAS'], errors='coerce').fillna(0)
@@ -145,125 +130,203 @@ def load_data():
 
 df = load_data()
 
-def card(title, value, subtitle="", accent=False):
-    cls = "metric-card-accent" if accent else "metric-card"
-    return f'<div class="{cls}"><div class="metric-title">{title}</div><div class="metric-value">{value}</div><div class="metric-sub">{subtitle}</div></div>'
+def card(title, value, sub="", accent=False):
+    cls = "card-accent" if accent else "card"
+    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}</div></div>'
 
-st.title("Dashboard de Vendas - Mirai")
-
-col_f1, col_f2, col_f3 = st.columns(3)
-with col_f1:
+with st.sidebar:
+    st.markdown("### Filtros")
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
-with col_f2:
     depts = sorted(df['DEPARTAMENTO'].unique())
     dept_sel = st.multiselect("Departamento", depts, default=depts)
-with col_f3:
     torres = sorted(df['TORRE'].unique())
     torre_sel = st.multiselect("Torre", torres, default=torres)
+    tipos = ['MIGRAÇÃO', 'NOVO']
+    tipo_sel = st.multiselect("Tipo de Venda", tipos, default=tipos)
 
 df_f = df.copy()
 if mes_sel != "Todos":
     df_f = df_f[df_f['MES'] == mes_sel]
 df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
 df_f = df_f[df_f['TORRE'].isin(torre_sel)]
+df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
 
-total = df_f['VALOR_PRODUTO'].sum()
-mig = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
-novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
-regs = len(df_f)
-regs_mig = len(df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO'])
-regs_nov = len(df_f[df_f['TIPO_VENDA'] == 'NOVO'])
+tab1, tab2, tab3, tab4 = st.tabs(["Visao Geral", "Produtos", "Buscar Pedido", "Dados"])
 
-mov_mig = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
-mov_nov = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
-fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-avanc = df_f[df_f['TORRE'] == 'Avançados']['VALOR_PRODUTO'].sum()
-ti = df_f[df_f['TORRE'] == 'TI']['VALOR_PRODUTO'].sum()
+with tab1:
+    st.markdown("## Visao Geral")
 
-st.markdown("### Resultados Gerais")
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.markdown(card("TOTAL GERAL", f"R${total:,.2f}", f"{regs} registros"), unsafe_allow_html=True)
-with c2:
-    pct_mig = (mig/total*100) if total > 0 else 0
-    st.markdown(card("TOTAL MIGRAÇÃO", f"R${mig:,.2f}", f"{regs_mig} reg | {pct_mig:.1f}%"), unsafe_allow_html=True)
-with c3:
-    pct_nov = (novo/total*100) if total > 0 else 0
-    st.markdown(card("TOTAL NOVO", f"R${novo:,.2f}", f"{regs_nov} reg | {pct_nov:.1f}%", accent=True), unsafe_allow_html=True)
-with c4:
-    movel_total = mov_mig + mov_nov
-    st.markdown(card("MÓVEL TOTAL", f"R${movel_total:,.2f}", f"Mig: R${mov_mig:,.0f} | Nov: R${mov_nov:,.0f}"), unsafe_allow_html=True)
+    total = df_f['VALOR_PRODUTO'].sum()
+    mig = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
+    novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+    regs = len(df_f)
 
-st.markdown("### Por Torre e Tipo")
-c5, c6, c7, c8, c9, c10 = st.columns(6)
-with c5:
-    st.markdown(card("MIG. MÓVEL", f"R${mov_mig:,.2f}", f"{len(df_f[(df_f['TORRE']=='Móvel') & (df_f['TIPO_VENDA']=='MIGRAÇÃO')])} reg"), unsafe_allow_html=True)
-with c6:
-    st.markdown(card("NOVO MÓVEL", f"R${mov_nov:,.2f}", f"{len(df_f[(df_f['TORRE']=='Móvel') & (df_f['TIPO_VENDA']=='NOVO')])} reg", accent=True), unsafe_allow_html=True)
-with c7:
-    st.markdown(card("MIG. FIXA", f"R${fix_mig:,.2f}", f"{len(df_f[(df_f['TORRE']=='Fixa PJ') & (df_f['TIPO_VENDA']=='MIGRAÇÃO')])} reg"), unsafe_allow_html=True)
-with c8:
-    st.markdown(card("NOVO FIXA", f"R${fix_nov:,.2f}", f"{len(df_f[(df_f['TORRE']=='Fixa PJ') & (df_f['TIPO_VENDA']=='NOVO')])} reg", accent=True), unsafe_allow_html=True)
-with c9:
-    st.markdown(card("AVANÇADOS", f"R${avanc:,.2f}", f"{len(df_f[df_f['TORRE']=='Avançados'])} reg"), unsafe_allow_html=True)
-with c10:
-    st.markdown(card("TI / DIGITAIS", f"R${ti:,.2f}", f"{len(df_f[df_f['TORRE']=='TI'])} reg"), unsafe_allow_html=True)
+    mov_mig = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
+    mov_nov = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
+    fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
+    fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
+    avanc = df_f[df_f['TORRE'] == 'Avançados']['VALOR_PRODUTO'].sum()
+    ti = df_f[df_f['TORRE'] == 'TI']['VALOR_PRODUTO'].sum()
 
-st.markdown("---")
+    mov_mig_reg = len(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
+    mov_nov_reg = len(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')])
+    fix_mig_reg = len(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
+    fix_nov_reg = len(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')])
 
-col_left, col_right = st.columns(2)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{regs} registros"), unsafe_allow_html=True)
+    with c2:
+        st.markdown(card("Total Migracao", f"R${mig:,.2f}", f"{len(df_f[df_f['TIPO_VENDA']=='MIGRAÇÃO'])} reg"), unsafe_allow_html=True)
+    with c3:
+        st.markdown(card("Total Novo", f"R${novo:,.2f}", f"{len(df_f[df_f['TIPO_VENDA']=='NOVO'])} reg", accent=True), unsafe_allow_html=True)
 
-with col_left:
-    st.markdown("### Por Departamento")
-    dept_data = df_f.groupby(['DEPARTAMENTO', 'TIPO_VENDA'])['VALOR_PRODUTO'].sum().reset_index()
-    chart_dept = alt.Chart(dept_data).mark_bar().encode(
-        x=alt.X('sum(VALOR_PRODUTO):Q', title='R$ Total'),
-        y=alt.Y('DEPARTAMENTO:N', sort='-x', title=''),
-        color=alt.Color('TIPO_VENDA:N', scale=alt.Scale(domain=['MIGRAÇÃO', 'NOVO'], range=[P, PA]), legend=alt.Legend(title=''))
-    ).properties(height=400)
-    st.altair_chart(chart_dept, use_container_width=True)
+    st.markdown("#### Movel")
+    cm1, cm2, cm3 = st.columns(3)
+    with cm1:
+        st.markdown(card("Movel Total", f"R${mov_mig+mov_nov:,.2f}", f"{mov_mig_reg+mov_nov_reg} reg"), unsafe_allow_html=True)
+    with cm2:
+        st.markdown(card("Mig. Movel", f"R${mov_mig:,.2f}", f"{mov_mig_reg} reg"), unsafe_allow_html=True)
+    with cm3:
+        st.markdown(card("Novo Movel", f"R${mov_nov:,.2f}", f"{mov_nov_reg} reg", accent=True), unsafe_allow_html=True)
 
-with col_right:
-    st.markdown("### Por Torre")
-    torre_data = df_f.groupby(['TORRE', 'TIPO_VENDA'])['VALOR_PRODUTO'].sum().reset_index()
-    chart_torre = alt.Chart(torre_data).mark_bar().encode(
-        x=alt.X('TORRE:N', title=''),
-        y=alt.Y('sum(VALOR_PRODUTO):Q', title='R$ Total', stack=True),
-        color=alt.Color('TIPO_VENDA:N', scale=alt.Scale(domain=['MIGRAÇÃO', 'NOVO'], range=[P, PA]), legend=alt.Legend(title='')),
-        tooltip=['TORRE', 'TIPO_VENDA', alt.Tooltip('sum(VALOR_PRODUTO):Q', format=',.2f')]
-    ).properties(height=400)
-    st.altair_chart(chart_torre, use_container_width=True)
+    st.markdown("#### Fixa PJ")
+    cf1, cf2, cf3 = st.columns(3)
+    with cf1:
+        st.markdown(card("Fixa Total", f"R${fix_mig+fix_nov:,.2f}", f"{fix_mig_reg+fix_nov_reg} reg"), unsafe_allow_html=True)
+    with cf2:
+        st.markdown(card("Mig. Fixa", f"R${fix_mig:,.2f}", f"{fix_mig_reg} reg"), unsafe_allow_html=True)
+    with cf3:
+        st.markdown(card("Novo Fixa", f"R${fix_nov:,.2f}", f"{fix_nov_reg} reg", accent=True), unsafe_allow_html=True)
 
-st.markdown("---")
-st.markdown("### Ranking de Vendedores")
+    st.markdown("#### Avancados & TI")
+    ca1, ca2 = st.columns(2)
+    with ca1:
+        avanc_reg = len(df_f[df_f['TORRE'] == 'Avançados'])
+        st.markdown(card("Avancados", f"R${avanc:,.2f}", f"{avanc_reg} reg"), unsafe_allow_html=True)
+        if avanc_reg > 0:
+            av_prods = df_f[df_f['TORRE'] == 'Avançados'].groupby('PRODUTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).head(5)
+            for prod, val in av_prods.items():
+                st.markdown(f"<div style='color:#aaa;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{PA}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
+    with ca2:
+        ti_reg = len(df_f[df_f['TORRE'] == 'TI'])
+        st.markdown(card("TI / Digitais", f"R${ti:,.2f}", f"{ti_reg} reg"), unsafe_allow_html=True)
+        if ti_reg > 0:
+            ti_prods = df_f[df_f['TORRE'] == 'TI'].groupby('PRODUTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).head(5)
+            for prod, val in ti_prods.items():
+                st.markdown(f"<div style='color:#aaa;font-size:12px;padding:2px 12px;'>- {prod}: <b style=\"color:{PA}\">R${val:,.2f}</b></div>", unsafe_allow_html=True)
 
-rank_data = []
-for resp, grp in df_f.groupby('RESPONSAVEL'):
-    rank_data.append({
-        'RESPONSAVEL': resp,
-        'QTD': len(grp),
-        'MOV_MIG': grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(),
-        'MOV_NOV': grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum(),
-        'FIX_MIG': grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(),
-        'FIX_NOV': grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum(),
-        'TOTAL': grp['VALOR_PRODUTO'].sum(),
-        'DEPARTAMENTO': DEPT_MAP.get(resp, 'Outros')
-    })
-rank = pd.DataFrame(rank_data).sort_values('TOTAL', ascending=False).reset_index(drop=True)
+    st.markdown("---")
+    st.markdown("#### Ranking por Departamento")
+    dept_resumo = df_f.groupby('DEPARTAMENTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).reset_index()
+    for _, row in dept_resumo.iterrows():
+        pct = (row['VALOR_PRODUTO']/total*100) if total > 0 else 0
+        st.markdown(f"""<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;">
+            <div style="flex:1;color:#333;font-size:13px;font-weight:500;">{row['DEPARTAMENTO']}</div>
+            <div style="color:{P};font-weight:bold;font-size:13px;">R${row['VALOR_PRODUTO']:,.2f}</div>
+            <div style="color:#999;font-size:11px;margin-left:12px;width:50px;text-align:right;">{pct:.1f}%</div>
+        </div>""", unsafe_allow_html=True)
 
-top15 = rank.head(15).copy()
-chart_rank = alt.Chart(top15).mark_bar().encode(
-    x=alt.X('RESPONSAVEL:N', sort=alt.EncodingSortField(field='TOTAL', order='descending'), title=''),
-    y=alt.Y('TOTAL:Q', title='R$ Total'),
-    color=alt.Color('DEPARTAMENTO:N', scale=alt.Scale(scheme='purples'), legend=alt.Legend(title='Depto')),
-    tooltip=['RESPONSAVEL', 'DEPARTAMENTO', alt.Tooltip('TOTAL:Q', format=',.2f')]
-).properties(height=400)
-st.altair_chart(chart_rank, use_container_width=True)
+with tab2:
+    st.markdown("## Produtos Mais Vendidos")
 
-st.markdown("### Tabela Detalhada")
-display_rank = rank.copy()
-for col in ['MOV_MIG', 'MOV_NOV', 'FIX_MIG', 'FIX_NOV', 'TOTAL']:
-    display_rank[col] = display_rank[col].apply(lambda x: f"R${x:,.2f}")
-st.dataframe(display_rank, use_container_width=True, height=500)
+    torre_prod = st.selectbox("Filtrar por Torre", ["Todas"] + list(torres), key="torre_prod")
+    df_prod = df_f if torre_prod == "Todas" else df_f[df_f['TORRE'] == torre_prod]
+
+    col_p1, col_p2 = st.columns(2)
+
+    with col_p1:
+        st.markdown("#### Top Produtos - Migracao")
+        prods_mig = df_prod[df_prod['TIPO_VENDA'] == 'MIGRAÇÃO'].groupby('PRODUTO').agg(
+            VALOR=('VALOR_PRODUTO', 'sum'),
+            QTD=('VALOR_PRODUTO', 'count')
+        ).sort_values('VALOR', ascending=False).head(15)
+        for i, (prod, row) in enumerate(prods_mig.iterrows(), 1):
+            st.markdown(f"""<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;">
+                <div style="color:{P};font-weight:bold;width:24px;">{i}</div>
+                <div style="flex:1;color:#333;font-size:12px;">{prod}</div>
+                <div style="color:#888;font-size:11px;margin-right:12px;">{int(row['QTD'])}x</div>
+                <div style="color:{P};font-weight:bold;font-size:12px;">R${row['VALOR']:,.2f}</div>
+            </div>""", unsafe_allow_html=True)
+
+    with col_p2:
+        st.markdown("#### Top Produtos - Novo")
+        prods_nov = df_prod[df_prod['TIPO_VENDA'] == 'NOVO'].groupby('PRODUTO').agg(
+            VALOR=('VALOR_PRODUTO', 'sum'),
+            QTD=('VALOR_PRODUTO', 'count')
+        ).sort_values('VALOR', ascending=False).head(15)
+        for i, (prod, row) in enumerate(prods_nov.iterrows(), 1):
+            st.markdown(f"""<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;">
+                <div style="color:{P2};font-weight:bold;width:24px;">{i}</div>
+                <div style="flex:1;color:#333;font-size:12px;">{prod}</div>
+                <div style="color:#888;font-size:11px;margin-right:12px;">{int(row['QTD'])}x</div>
+                <div style="color:{P2};font-weight:bold;font-size:12px;">R${row['VALOR']:,.2f}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("#### Avancados - Detalhamento por Produto")
+    av_detail = df_f[df_f['TORRE'] == 'Avançados'].groupby(['PRODUTO', 'TIPO_VENDA']).agg(
+        VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
+    ).sort_values('VALOR', ascending=False).reset_index()
+    if len(av_detail) > 0:
+        st.dataframe(av_detail, use_container_width=True, height=200)
+    else:
+        st.info("Sem dados de Avancados no filtro atual")
+
+    st.markdown("#### TI / Digitais - Detalhamento por Produto")
+    ti_detail = df_f[df_f['TORRE'] == 'TI'].groupby(['PRODUTO', 'TIPO_VENDA']).agg(
+        VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')
+    ).sort_values('VALOR', ascending=False).reset_index()
+    if len(ti_detail) > 0:
+        st.dataframe(ti_detail, use_container_width=True, height=200)
+    else:
+        st.info("Sem dados de TI no filtro atual")
+
+with tab3:
+    st.markdown("## Buscar Pedido")
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
+        busca_nome = st.text_input("Buscar por Nome do Negocio / Cliente")
+    with col_b2:
+        busca_resp = st.selectbox("Filtrar por Responsavel", ["Todos"] + sorted(df['RESPONSAVEL'].unique().tolist()), key="busca_resp")
+
+    df_busca = df_f.copy()
+    if busca_nome:
+        df_busca = df_busca[df_busca['NOME_NEGOCIO'].str.contains(busca_nome, case=False, na=False)]
+    if busca_resp != "Todos":
+        df_busca = df_busca[df_busca['RESPONSAVEL'] == busca_resp]
+
+    st.markdown(f"**{len(df_busca)} resultado(s) encontrado(s)**")
+
+    if len(df_busca) > 0:
+        for _, row in df_busca.head(50).iterrows():
+            st.markdown(f"""<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:8px;padding:12px;margin:8px 0;border-left:3px solid {P};">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="color:#1a1a2e;font-size:13px;font-weight:bold;">{row.get('NOME_NEGOCIO','')}</div>
+                        <div style="color:#666;font-size:11px;margin-top:4px;">{row.get('RESPONSAVEL','')} | {row.get('TORRE','')} | {row.get('TIPO_VENDA','')}</div>
+                        <div style="color:#999;font-size:11px;">{row.get('PRODUTO','')} | {row.get('PIPELINE','')}/{row.get('FASE','')}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:{P};font-size:18px;font-weight:bold;">R${row.get('VALOR_PRODUTO',0):,.2f}</div>
+                        <div style="color:#999;font-size:10px;">{row.get('CONCLUSAO_VIVO','')}</div>
+                    </div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+with tab4:
+    st.markdown("## Dados Completos")
+    st.markdown(f"**{len(df_f)} registros** no filtro atual")
+
+    col_d1, col_d2, col_d3 = st.columns(3)
+    with col_d1:
+        st.markdown(card("Registros", f"{len(df_f)}", "no filtro"), unsafe_allow_html=True)
+    with col_d2:
+        st.markdown(card("Vendedores", f"{df_f['RESPONSAVEL'].nunique()}", "ativos"), unsafe_allow_html=True)
+    with col_d3:
+        st.markdown(card("Produtos", f"{df_f['PRODUTO'].nunique()}", "diferentes"), unsafe_allow_html=True)
+
+    cols_show = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'CONCLUSAO_VIVO', 'PIPELINE', 'FASE', 'DEPARTAMENTO']
+    available_cols = [c for c in cols_show if c in df_f.columns]
+    st.dataframe(df_f[available_cols].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=600)
