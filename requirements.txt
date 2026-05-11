@@ -1,0 +1,4 @@
+snowflake-connector-python[pandas]
+streamlit
+altair<5
+pandas
