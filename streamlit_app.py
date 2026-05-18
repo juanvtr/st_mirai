@@ -134,7 +134,7 @@ def card(title, value, sub="", accent=False):
 def count_linhas(dataframe):
     if len(dataframe) == 0:
         return 0
-    return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().sum())
+    return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
 with st.sidebar:
     st.markdown("### Filtros")
@@ -325,4 +325,3 @@ with tab4:
     cols_show = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'LINHAS', 'CONCLUSAO_VIVO', 'PIPELINE', 'FASE', 'DEPARTAMENTO']
     available_cols = [c for c in cols_show if c in df_f.columns]
     st.dataframe(df_f[available_cols].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=600)
-
