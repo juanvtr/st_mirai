@@ -259,11 +259,14 @@ with tab6:
     tram_total = df_tram['VALOR_PRODUTO'].sum()
     tram_regs = len(df_tram)
     resultado_total = df_f['VALOR_PRODUTO'].sum()
-    estimativa = resultado_total + tram_total
-    ct1, ct2, ct3 = st.columns(3)
+    estimativa_otimista = resultado_total + tram_total
+    estimativa_realista = resultado_total + (tram_total * 0.70)
+    ct1, ct2, ct3, ct4 = st.columns(4)
     with ct1: st.markdown(card("Concluido", f"R${resultado_total:,.2f}", f"{len(df_f)} registros"), unsafe_allow_html=True)
     with ct2: st.markdown(card("Em Tramitacao", f"R${tram_total:,.2f}", f"{tram_regs} pedidos", accent=True), unsafe_allow_html=True)
-    with ct3: st.markdown(card("Estimativa Mes", f"R${estimativa:,.2f}", "concluido + previsao"), unsafe_allow_html=True)
+    with ct3: st.markdown(card("Estimativa Otimista", f"R${estimativa_otimista:,.2f}", "100% concluir"), unsafe_allow_html=True)
+    with ct4: st.markdown(card("Estimativa Realista", f"R${estimativa_realista:,.2f}", "70% concluir (-30%)", accent=True), unsafe_allow_html=True)
+    st.markdown(f'<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:12px;margin:10px 0;"><b style="color:#e65100;">Atencao:</b> <span style="color:#bf360c;">Historicamente, ~30% dos pedidos em tramitacao podem nao ser concluidos (cancelamentos, credito reprovado, desistencias). A estimativa realista ja considera esse corte.</span></div>', unsafe_allow_html=True)
     st.markdown("#### Por Pipeline")
     for _, row in df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index().iterrows():
         st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;"><div style="flex:1;color:#333;font-size:13px;font-weight:500;">{row["PIPELINE"]}</div><div style="color:#888;font-size:12px;margin-right:12px;">{int(row["QTD"])} pedidos</div><div style="color:{P};font-weight:bold;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
