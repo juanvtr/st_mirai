@@ -148,10 +148,11 @@ st.markdown(f"""
     section[data-testid="stSidebar"] .stMarkdown {{ color: {TEXT} !important; }}
 
     .stTabs [data-baseweb="tab-list"] {{
-        background-color: rgba(20, 14, 40, 0.6);
+        background-color: rgba(10, 5, 24, 0.95);
         border-radius: 10px;
         padding: 4px;
         gap: 4px;
+        border: 1px solid {CARD_BORDER};
     }}
     .stTabs [data-baseweb="tab"] {{
         color: {TEXT_DIM} !important;
@@ -254,8 +255,10 @@ def count_linhas(dataframe):
         return 0
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
+LOGO_URL = "https://raw.githubusercontent.com/juanvtr/st_mirai/main/mir.png"
+
 with st.sidebar:
-    st.markdown(f'<div style="text-align:center;padding:10px 0 20px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:20px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:11px;margin:4px 0 0;">Dashboard de Vendas</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center;padding:16px 0 12px;"><img src="{LOGO_URL}" style="width:120px;border-radius:12px;opacity:0.9;margin-bottom:8px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:18px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:10px;margin:4px 0 0;letter-spacing:1px;text-transform:uppercase;">Dashboard de Vendas</p></div>', unsafe_allow_html=True)
     st.markdown("---")
     cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
     carga_labels = [str(c) for c in cargas]
@@ -263,7 +266,7 @@ with st.sidebar:
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
-    dept_sel = st.multiselect("Departamento", depts, default=depts)
+    dept_sel = st.selectbox("Departamento", ["Todos"] + list(depts))
     torres = sorted(df['TORRE'].unique())
     torre_sel = st.multiselect("Torre", torres, default=torres)
     tipos = ['MIGRAÇÃO', 'NOVO']
@@ -272,12 +275,14 @@ with st.sidebar:
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
     df_f = df_f[df_f['MES'] == mes_sel]
-df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
+if dept_sel != "Todos":
+    df_f = df_f[df_f['DEPARTAMENTO'] == dept_sel]
 df_f = df_f[df_f['TORRE'].isin(torre_sel)]
 df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
 
 df_tram = df_tram_raw.copy()
-df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
+if dept_sel != "Todos":
+    df_tram = df_tram[df_tram['DEPARTAMENTO'] == dept_sel]
 df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
 df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
 
@@ -416,13 +421,40 @@ with tab6:
 
     st.markdown(f'<div style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:14px;margin:12px 0;"><b style="color:#ffb74d;">Atenção:</b> <span style="color:{TEXT_DIM};">~30% dos pedidos em tramitação podem não ser concluídos. A estimativa realista já considera esse corte.</span></div>', unsafe_allow_html=True)
 
-    st.markdown("#### Por Pipeline")
-    for _, row in df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index().iterrows():
-        st.markdown(f'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="flex:1;color:#fff;font-size:13px;font-weight:500;">{row["PIPELINE"]}</div><div style="color:{TEXT_DIM};font-size:12px;margin-right:14px;">{int(row["QTD"])} pedidos</div><div style="color:{P};font-weight:700;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("#### Por Fase")
-    for _, row in df_tram.groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index().iterrows():
-        st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(123,47,247,0.06);"><div style="flex:1;color:{TEXT};font-size:12px;">{row["FASE"]}</div><div style="color:{TEXT_DIM};font-size:11px;margin-right:14px;">{int(row["QTD"])}x</div><div style="color:{P2};font-weight:700;font-size:12px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
+    st.markdown("#### Visão Hierárquica: Pipeline > Fase")
+    pipeline_data = df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+    for _, pipe_row in pipeline_data.iterrows():
+        pipe_name = pipe_row['PIPELINE']
+        pipe_valor = pipe_row['VALOR']
+        pipe_qtd = int(pipe_row['QTD'])
+        pipe_pct = (pipe_valor / tram_total * 100) if tram_total > 0 else 0
+        st.markdown(f'''<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:14px;padding:18px;margin:14px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:4px;height:28px;background:linear-gradient(180deg,{P},{P2});border-radius:4px;"></div>
+                    <div><div style="color:#fff;font-size:15px;font-weight:700;">{pipe_name}</div>
+                    <div style="color:{TEXT_DIM};font-size:11px;">{pipe_qtd} pedidos</div></div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:{P};font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
+                    <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% do total</div>
+                </div>
+            </div>
+            <div style="background:rgba(123,47,247,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
+        fases_pipe = df_tram[df_tram['PIPELINE'] == pipe_name].groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+        for _, fase_row in fases_pipe.iterrows():
+            fase_pct = (fase_row['VALOR'] / pipe_valor * 100) if pipe_valor > 0 else 0
+            bar_w = min(fase_pct, 100)
+            st.markdown(f'''<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(123,47,247,0.06);">
+                <div style="width:6px;height:6px;background:{P2};border-radius:50%;margin-right:10px;flex-shrink:0;"></div>
+                <div style="flex:1;color:{TEXT};font-size:12px;">{fase_row["FASE"]}</div>
+                <div style="color:{TEXT_DIM};font-size:11px;margin-right:10px;">{int(fase_row["QTD"])}x</div>
+                <div style="width:60px;background:rgba(123,47,247,0.15);border-radius:3px;height:6px;margin-right:10px;"><div style="background:{P2};border-radius:3px;height:6px;width:{bar_w}%;"></div></div>
+                <div style="color:{P2};font-weight:600;font-size:12px;min-width:90px;text-align:right;">R${fase_row["VALOR"]:,.2f}</div>
+            </div>''', unsafe_allow_html=True)
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("#### Detalhamento")
     cols_tram = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
@@ -431,15 +463,28 @@ with tab6:
 
 with tab3:
     st.markdown("## Buscar Pedido")
-    col_b1, col_b2 = st.columns(2)
+    col_b1, col_b2, col_b3 = st.columns(3)
     with col_b1: busca_nome = st.text_input("Buscar por Nome / Cliente")
     with col_b2: busca_resp = st.selectbox("Responsável", ["Todos"] + sorted(df['RESPONSAVEL'].unique().tolist()), key="busca_resp")
-    df_busca = df_f.copy()
+    with col_b3: busca_fonte = st.selectbox("Fonte", ["Todos", "Concluídos", "Tramitando"], key="busca_fonte")
+    if busca_fonte == "Concluídos":
+        df_busca = df_f.copy()
+    elif busca_fonte == "Tramitando":
+        df_busca = df_tram.copy()
+    else:
+        df_busca_result = df_f.copy()
+        df_busca_result['_FONTE'] = 'Concluído'
+        df_busca_tram = df_tram.copy()
+        df_busca_tram['_FONTE'] = 'Tramitando'
+        df_busca = pd.concat([df_busca_result, df_busca_tram], ignore_index=True)
     if busca_nome: df_busca = df_busca[df_busca['NOME_NEGOCIO'].str.contains(busca_nome, case=False, na=False)]
     if busca_resp != "Todos": df_busca = df_busca[df_busca['RESPONSAVEL'] == busca_resp]
     st.markdown(f'<p style="color:{TEXT_DIM};font-size:13px;"><b style="color:#fff;">{len(df_busca)}</b> resultado(s)</p>', unsafe_allow_html=True)
     for _, row in df_busca.head(50).iterrows():
-        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:12px;padding:14px;margin:8px 0;border-left:3px solid {P};transition:all 0.2s;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="color:#fff;font-size:13px;font-weight:600;">{row.get("NOME_NEGOCIO","")}</div><div style="color:{TEXT_DIM};font-size:11px;margin-top:4px;">{row.get("RESPONSAVEL","")} | {row.get("TORRE","")} | {row.get("TIPO_VENDA","")}</div></div><div style="text-align:right;"><div style="color:{P};font-size:20px;font-weight:700;">R${row.get("VALOR_PRODUTO",0):,.2f}</div></div></div></div>', unsafe_allow_html=True)
+        fonte_label = row.get('_FONTE', '')
+        fonte_badge = f'<span style="background:rgba(123,47,247,0.2);color:{P2};font-size:9px;padding:2px 6px;border-radius:4px;margin-left:8px;">{fonte_label}</span>' if fonte_label else ''
+        fase_info = f' | {row.get("FASE", "")}' if 'FASE' in row.index and row.get('_FONTE', '') == 'Tramitando' else ''
+        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:12px;padding:14px;margin:8px 0;border-left:3px solid {P};transition:all 0.2s;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="color:#fff;font-size:13px;font-weight:600;">{row.get("NOME_NEGOCIO","")}{fonte_badge}</div><div style="color:{TEXT_DIM};font-size:11px;margin-top:4px;">{row.get("RESPONSAVEL","")} | {row.get("TORRE","")} | {row.get("TIPO_VENDA","")}{fase_info}</div></div><div style="text-align:right;"><div style="color:{P};font-size:20px;font-weight:700;">R${row.get("VALOR_PRODUTO",0):,.2f}</div></div></div></div>', unsafe_allow_html=True)
 
 with tab4:
     st.markdown("## Dados Completos")
@@ -488,3 +533,5 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
+
+                                                                                                                                                                
