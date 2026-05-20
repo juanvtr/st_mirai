@@ -72,24 +72,122 @@ DEPT_MAP = {
 P = '#7B2FF7'
 P2 = '#9D4EDD'
 PA = '#5A189A'
-BG = '#ffffff'
-CARD = '#f8f6ff'
+BG = '#0f0a1a'
+CARD_BG = 'rgba(20, 14, 40, 0.85)'
+CARD_BORDER = 'rgba(123, 47, 247, 0.25)'
+TEXT = '#e8e0f7'
+TEXT_DIM = '#a89cc8'
+
+BG_IMAGE_URL = "https://raw.githubusercontent.com/juanvtr/st_mirai/main/mir.png"
 
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: {BG}; }}
-    .card {{ background: {CARD}; border: 1px solid #e8e0f7; border-radius: 12px; padding: 18px 14px; text-align: center; margin-bottom: 10px; border-left: 4px solid {P}; box-shadow: 0 2px 8px rgba(123,47,247,0.06); }}
-    .card-accent {{ background: linear-gradient(135deg, #f3e8ff, #ede0ff); border: 1px solid #d4b8ff; border-radius: 12px; padding: 18px 14px; text-align: center; margin-bottom: 10px; border-left: 4px solid {P2}; box-shadow: 0 2px 8px rgba(157,78,221,0.1); }}
-    .card-title {{ color: #666; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }}
-    .card-value {{ color: #1a1a2e; font-size: 22px; font-weight: 700; margin: 6px 0; }}
-    .card-sub {{ color: {P}; font-size: 10px; }}
-    h1, h2, h3 {{ color: #1a1a2e !important; }}
-    .stMultiSelect span[data-baseweb="tag"] {{ background-color: {P} !important; color: white !important; }}
-    .stTabs [data-baseweb="tab-list"] {{ background-color: #f3f0fa; border-radius: 8px; }}
-    .stTabs [data-baseweb="tab"] {{ color: #666 !important; }}
-    .stTabs [aria-selected="true"] {{ color: white !important; background-color: {P} !important; border-radius: 6px; }}
-    .stMarkdown hr {{ border-color: #e8e0f7 !important; }}
-    section[data-testid="stSidebar"] {{ background-color: #f9f7fe !important; }}
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    .stApp {{
+        background: linear-gradient(180deg, #0f0a1a 0%, #0a0620 50%, #12052b 100%);
+        font-family: 'Inter', sans-serif;
+    }}
+    .stApp::before {{
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: url('{BG_IMAGE_URL}') center/cover no-repeat;
+        opacity: 0.08;
+        pointer-events: none;
+        z-index: 0;
+    }}
+    .main .block-container {{ position: relative; z-index: 1; }}
+
+    .metric-card {{
+        background: {CARD_BG};
+        backdrop-filter: blur(12px);
+        border: 1px solid {CARD_BORDER};
+        border-radius: 16px;
+        padding: 20px 16px;
+        text-align: center;
+        margin-bottom: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }}
+    .metric-card:hover {{
+        transform: translateY(-4px);
+        border-color: {P};
+        box-shadow: 0 8px 32px rgba(123, 47, 247, 0.2), 0 0 16px rgba(123, 47, 247, 0.1);
+    }}
+    .metric-card-accent {{
+        background: linear-gradient(135deg, rgba(123,47,247,0.15), rgba(157,78,221,0.1));
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(123, 47, 247, 0.4);
+        border-radius: 16px;
+        padding: 20px 16px;
+        text-align: center;
+        margin-bottom: 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }}
+    .metric-card-accent:hover {{
+        transform: translateY(-4px);
+        box-shadow: 0 8px 32px rgba(123, 47, 247, 0.3), 0 0 20px rgba(157, 78, 221, 0.15);
+    }}
+    .card-title {{ color: {TEXT_DIM}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }}
+    .card-value {{ color: #ffffff; font-size: 24px; font-weight: 700; margin: 8px 0 4px; }}
+    .card-sub {{ color: {P2}; font-size: 11px; font-weight: 500; }}
+    .card-indicator {{ font-size: 13px; font-weight: 600; margin-top: 4px; }}
+    .indicator-up {{ color: #4CAF50; }}
+    .indicator-down {{ color: #ef5350; }}
+    .indicator-neutral {{ color: {TEXT_DIM}; }}
+
+    h1, h2, h3, h4 {{ color: #ffffff !important; font-family: 'Inter', sans-serif !important; }}
+    p, span, div {{ color: {TEXT}; }}
+
+    section[data-testid="stSidebar"] {{
+        background: linear-gradient(180deg, #0a0518 0%, #0f0825 100%) !important;
+        border-right: 1px solid {CARD_BORDER};
+    }}
+    section[data-testid="stSidebar"] .stMarkdown {{ color: {TEXT} !important; }}
+
+    .stTabs [data-baseweb="tab-list"] {{
+        background-color: rgba(20, 14, 40, 0.6);
+        border-radius: 10px;
+        padding: 4px;
+        gap: 4px;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color: {TEXT_DIM} !important;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 13px;
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: white !important;
+        background: linear-gradient(135deg, {P}, {P2}) !important;
+        border-radius: 8px;
+    }}
+
+    .stSelectbox > div > div, .stMultiSelect > div > div {{
+        background-color: rgba(20, 14, 40, 0.9) !important;
+        border: 1px solid {CARD_BORDER} !important;
+        border-radius: 10px !important;
+        color: {TEXT} !important;
+    }}
+    .stSelectbox label, .stMultiSelect label {{
+        color: {TEXT_DIM} !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+    }}
+    .stMultiSelect span[data-baseweb="tag"] {{
+        background-color: {P} !important;
+        color: white !important;
+        border-radius: 6px !important;
+    }}
+
+    .stDataFrame {{ border-radius: 12px; overflow: hidden; }}
+    .stMarkdown hr {{ border-color: rgba(123, 47, 247, 0.15) !important; }}
+    .stTextInput > div > div {{ background-color: rgba(20, 14, 40, 0.9) !important; border: 1px solid {CARD_BORDER} !important; border-radius: 10px !important; color: white !important; }}
+    .stTextInput label {{ color: {TEXT_DIM} !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -137,12 +235,19 @@ def load_tramitando():
 
 df = load_data()
 df_metas = load_metas()
-df_tram = load_tramitando()
+df_tram_raw = load_tramitando()
 has_metas = len(df_metas) > 0
 
-def card(title, value, sub="", accent=False):
-    cls = "card-accent" if accent else "card"
-    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}</div></div>'
+def card(title, value, sub="", accent=False, indicator=None):
+    cls = "metric-card-accent" if accent else "metric-card"
+    ind_html = ""
+    if indicator == "up":
+        ind_html = '<div class="card-indicator indicator-up">&#9650; crescendo</div>'
+    elif indicator == "down":
+        ind_html = '<div class="card-indicator indicator-down">&#9660; caindo</div>'
+    elif indicator == "neutral":
+        ind_html = '<div class="card-indicator indicator-neutral">&#9654; estável</div>'
+    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}</div>{ind_html}</div>'
 
 def count_linhas(dataframe):
     if len(dataframe) == 0:
@@ -150,13 +255,13 @@ def count_linhas(dataframe):
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
 with st.sidebar:
-    st.markdown("### Filtros")
+    st.markdown(f'<div style="text-align:center;padding:10px 0 20px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:20px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:11px;margin:4px 0 0;">Dashboard de Vendas</p></div>', unsafe_allow_html=True)
+    st.markdown("---")
     cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
     carga_labels = [str(c) for c in cargas]
-    carga_sel = st.selectbox("Snapshot (Data Carga)", carga_labels, index=0)
-    st.markdown("---")
+    carga_sel = st.selectbox("Snapshot", carga_labels, index=0)
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
-    mes_sel = st.selectbox("Mes", ["Todos"] + list(meses))
+    mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
     dept_sel = st.multiselect("Departamento", depts, default=depts)
     torres = sorted(df['TORRE'].unique())
@@ -171,43 +276,72 @@ df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
 df_f = df_f[df_f['TORRE'].isin(torre_sel)]
 df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
 
-tab1, tab2, tab5, tab6, tab3, tab4, tab7 = st.tabs(["Visao Geral", "Produtos", "Metas", "Tramitando", "Buscar Pedido", "Dados", "Sobre"])
+df_tram = df_tram_raw.copy()
+df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
+df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
+df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
+
+total_novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+total_geral = df_f['VALOR_PRODUTO'].sum()
+taxa_novo = (total_novo / total_geral * 100) if total_geral > 0 else 0
+
+tram_novo = df_tram[df_tram['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+tram_total_val = df_tram['VALOR_PRODUTO'].sum()
+taxa_novo_tram = (tram_novo / tram_total_val * 100) if tram_total_val > 0 else 0
+taxa_novo_combinada = ((total_novo + tram_novo) / (total_geral + tram_total_val) * 100) if (total_geral + tram_total_val) > 0 else 0
+
+if taxa_novo >= 50:
+    novo_indicator = "up"
+elif taxa_novo >= 30:
+    novo_indicator = "neutral"
+else:
+    novo_indicator = "down"
+
+tab1, tab2, tab5, tab6, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Produtos", "Metas", "Tramitando", "Buscar Pedido", "Dados", "Sobre"])
 
 with tab1:
-    st.markdown("## Visao Geral")
+    st.markdown("## Visão Geral")
     total = df_f['VALOR_PRODUTO'].sum()
     mig = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
     novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas"), unsafe_allow_html=True)
+    with c2:
+        st.markdown(card("Migração", f"R${mig:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='MIGRAÇÃO'])} linhas"), unsafe_allow_html=True)
+    with c3:
+        st.markdown(card("Novo", f"R${novo:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='NOVO'])} linhas", accent=True), unsafe_allow_html=True)
+    with c4:
+        st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
+
+    st.markdown("#### Móvel")
     mov_mig = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
     mov_nov = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-    fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
-    fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-    avanc = df_f[df_f['TORRE'] == 'Avançados']['VALOR_PRODUTO'].sum()
-    ti = df_f[df_f['TORRE'] == 'TI']['VALOR_PRODUTO'].sum()
     mov_mig_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
     mov_nov_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')])
+    cm1, cm2, cm3 = st.columns(3)
+    with cm1: st.markdown(card("Móvel Total", f"R${mov_mig+mov_nov:,.2f}", f"{mov_mig_linhas+mov_nov_linhas} linhas"), unsafe_allow_html=True)
+    with cm2: st.markdown(card("Mig. Móvel", f"R${mov_mig:,.2f}", f"{mov_mig_linhas} linhas"), unsafe_allow_html=True)
+    with cm3: st.markdown(card("Novo Móvel", f"R${mov_nov:,.2f}", f"{mov_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
+
+    st.markdown("#### Fixa PJ")
+    fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
+    fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
     fix_mig_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
     fix_nov_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')])
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas"), unsafe_allow_html=True)
-    with c2: st.markdown(card("Total Migracao", f"R${mig:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='MIGRAÇÃO'])} linhas"), unsafe_allow_html=True)
-    with c3: st.markdown(card("Total Novo", f"R${novo:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='NOVO'])} linhas", accent=True), unsafe_allow_html=True)
-    st.markdown("#### Movel")
-    cm1, cm2, cm3 = st.columns(3)
-    with cm1: st.markdown(card("Movel Total", f"R${mov_mig+mov_nov:,.2f}", f"{mov_mig_linhas+mov_nov_linhas} linhas"), unsafe_allow_html=True)
-    with cm2: st.markdown(card("Mig. Movel", f"R${mov_mig:,.2f}", f"{mov_mig_linhas} linhas"), unsafe_allow_html=True)
-    with cm3: st.markdown(card("Novo Movel", f"R${mov_nov:,.2f}", f"{mov_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
-    st.markdown("#### Fixa PJ")
     cf1, cf2, cf3 = st.columns(3)
     with cf1: st.markdown(card("Fixa Total", f"R${fix_mig+fix_nov:,.2f}", f"{fix_mig_linhas+fix_nov_linhas} linhas"), unsafe_allow_html=True)
     with cf2: st.markdown(card("Mig. Fixa", f"R${fix_mig:,.2f}", f"{fix_mig_linhas} linhas"), unsafe_allow_html=True)
     with cf3: st.markdown(card("Novo Fixa", f"R${fix_nov:,.2f}", f"{fix_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("#### Ranking por Departamento")
     dept_resumo = df_f.groupby('DEPARTAMENTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).reset_index()
     for _, row in dept_resumo.iterrows():
         pct = (row['VALOR_PRODUTO']/total*100) if total > 0 else 0
-        st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;"><div style="flex:1;color:#333;font-size:13px;font-weight:500;">{row["DEPARTAMENTO"]}</div><div style="color:{P};font-weight:bold;font-size:13px;">R${row["VALOR_PRODUTO"]:,.2f}</div><div style="color:#999;font-size:11px;margin-left:12px;width:50px;text-align:right;">{pct:.1f}%</div></div>', unsafe_allow_html=True)
+        bar_width = min(pct * 2, 100)
+        st.markdown(f'<div style="padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="color:#fff;font-size:13px;font-weight:500;">{row["DEPARTAMENTO"]}</span><span style="color:{P};font-weight:700;font-size:13px;">R${row["VALOR_PRODUTO"]:,.2f} <span style="color:{TEXT_DIM};font-size:11px;">({pct:.1f}%)</span></span></div><div style="background:rgba(123,47,247,0.1);border-radius:4px;height:6px;"><div style="background:linear-gradient(90deg,{P},{P2});border-radius:4px;height:6px;width:{bar_width}%;transition:width 0.5s;"></div></div></div>', unsafe_allow_html=True)
 
 with tab2:
     st.markdown("## Produtos Mais Vendidos")
@@ -215,13 +349,13 @@ with tab2:
     df_prod = df_f if torre_prod == "Todas" else df_f[df_f['TORRE'] == torre_prod]
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        st.markdown("#### Top Produtos - Migracao")
+        st.markdown("#### Top Produtos - Migração")
         for i, (prod, row) in enumerate(df_prod[df_prod['TIPO_VENDA'] == 'MIGRAÇÃO'].groupby('PRODUTO').agg(VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')).sort_values('VALOR', ascending=False).head(15).iterrows(), 1):
-            st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;"><div style="color:{P};font-weight:bold;width:24px;">{i}</div><div style="flex:1;color:#333;font-size:12px;">{prod}</div><div style="color:#888;font-size:11px;margin-right:12px;">{int(row["QTD"])}x</div><div style="color:{P};font-weight:bold;font-size:12px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="color:{P};font-weight:700;width:28px;font-size:14px;">{i}</div><div style="flex:1;color:{TEXT};font-size:12px;">{prod}</div><div style="color:{TEXT_DIM};font-size:11px;margin-right:14px;">{int(row["QTD"])}x</div><div style="color:{P};font-weight:700;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
     with col_p2:
         st.markdown("#### Top Produtos - Novo")
         for i, (prod, row) in enumerate(df_prod[df_prod['TIPO_VENDA'] == 'NOVO'].groupby('PRODUTO').agg(VALOR=('VALOR_PRODUTO', 'sum'), QTD=('VALOR_PRODUTO', 'count')).sort_values('VALOR', ascending=False).head(15).iterrows(), 1):
-            st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;"><div style="color:{P2};font-weight:bold;width:24px;">{i}</div><div style="flex:1;color:#333;font-size:12px;">{prod}</div><div style="color:#888;font-size:11px;margin-right:12px;">{int(row["QTD"])}x</div><div style="color:{P2};font-weight:bold;font-size:12px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="color:{P2};font-weight:700;width:28px;font-size:14px;">{i}</div><div style="flex:1;color:{TEXT};font-size:12px;">{prod}</div><div style="color:{TEXT_DIM};font-size:11px;margin-right:14px;">{int(row["QTD"])}x</div><div style="color:{P2};font-weight:700;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
 
 with tab5:
     st.markdown("## Metas vs Realizado")
@@ -237,50 +371,58 @@ with tab5:
         def pct_bar(real, meta, label_r, label_m):
             pct = (real / meta * 100) if meta > 0 else 0
             if pct >= 100: color = '#4CAF50'
-            elif pct >= 75: color = '#7B2FF7'
-            elif pct >= 50: color = '#9D4EDD'
+            elif pct >= 75: color = P
+            elif pct >= 50: color = P2
             elif pct >= 25: color = '#C77DFF'
             else: color = '#E0AAFF'
             width = min(pct, 100)
-            return f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>{label_r}: <b style="color:#333">R${real:,.2f}</b></span><span>Meta: <b>R${meta:,.2f}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color};border-radius:6px;height:14px;width:{width}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color};font-weight:bold;">{pct:.1f}%</div></div>'
+            return f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:{TEXT_DIM};"><span>{label_r}: <b style="color:#fff">R${real:,.2f}</b></span><span>Meta: <b>R${meta:,.2f}</b></span></div><div style="background:rgba(123,47,247,0.15);border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color};border-radius:6px;height:14px;width:{width}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color};font-weight:bold;">{pct:.1f}%</div></div>'
         for _, row in merged.iterrows():
             dept = row['DEPARTAMENTO']; meta_novo = float(row['META_NOVO_TOTAL']); meta_mig = float(row['META_MIGRACAO_TOTAL'])
             real_novo = float(row['REAL_NOVO']); real_mig = float(row['REAL_MIG']); meta_total = meta_novo + meta_mig; real_total = float(row['REAL_TOTAL'])
             pct_total = (real_total / meta_total * 100) if meta_total > 0 else 0
-            badge_color = '#4CAF50' if pct_total >= 100 else '#7B2FF7' if pct_total >= 50 else '#9D4EDD'
-            st.markdown(f'<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:12px;padding:16px;margin:10px 0;border-left:4px solid {badge_color};"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#1a1a2e;font-size:16px;font-weight:700;">{dept}</div><div style="background:{badge_color};color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;">{pct_total:.0f}% total</div></div></div>', unsafe_allow_html=True)
+            badge_color = '#4CAF50' if pct_total >= 100 else P if pct_total >= 50 else P2
+            st.markdown(f'<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:14px;padding:18px;margin:12px 0;border-left:4px solid {badge_color};"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#fff;font-size:16px;font-weight:700;">{dept}</div><div style="background:{badge_color};color:white;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:bold;">{pct_total:.0f}%</div></div></div>', unsafe_allow_html=True)
             real_ap_qtd = int(row['REAL_APARELHOS_QTD']); meta_ap_qtd = int(row['META_APARELHOS_QTD'])
             ca1, ca2, ca3 = st.columns(3)
             with ca1: st.markdown(pct_bar(real_novo, meta_novo, "Novo", "Meta"), unsafe_allow_html=True)
-            with ca2: st.markdown(pct_bar(real_mig, meta_mig, "Migracao", "Meta"), unsafe_allow_html=True)
+            with ca2: st.markdown(pct_bar(real_mig, meta_mig, "Migração", "Meta"), unsafe_allow_html=True)
             with ca3:
                 pct_ap = (real_ap_qtd / meta_ap_qtd * 100) if meta_ap_qtd > 0 else 0
-                color_ap = '#4CAF50' if pct_ap >= 100 else '#7B2FF7' if pct_ap >= 50 else '#9D4EDD'
+                color_ap = '#4CAF50' if pct_ap >= 100 else P if pct_ap >= 50 else P2
                 width_ap = min(pct_ap, 100)
-                st.markdown(f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>Aparelhos: <b style="color:#333">{real_ap_qtd}</b></span><span>Meta: <b>{meta_ap_qtd}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color_ap};border-radius:6px;height:14px;width:{width_ap}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color_ap};font-weight:bold;">{pct_ap:.0f}% ({real_ap_qtd}/{meta_ap_qtd})</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:{TEXT_DIM};"><span>Aparelhos: <b style="color:#fff">{real_ap_qtd}</b></span><span>Meta: <b>{meta_ap_qtd}</b></span></div><div style="background:rgba(123,47,247,0.15);border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color_ap};border-radius:6px;height:14px;width:{width_ap}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color_ap};font-weight:bold;">{pct_ap:.0f}% ({real_ap_qtd}/{meta_ap_qtd})</div></div>', unsafe_allow_html=True)
             st.markdown("---")
 
 with tab6:
-    st.markdown("## Tramitando - Previsao")
-    st.markdown("Pedidos em andamento que podem ser concluidos neste mes.")
+    st.markdown("## Tramitando - Previsão")
+    st.markdown(f'<p style="color:{TEXT_DIM};">Pedidos em andamento filtrados pelos mesmos critérios da visão geral.</p>', unsafe_allow_html=True)
     tram_total = df_tram['VALOR_PRODUTO'].sum()
     tram_regs = len(df_tram)
     resultado_total = df_f['VALOR_PRODUTO'].sum()
     estimativa_otimista = resultado_total + tram_total
     estimativa_realista = resultado_total + (tram_total * 0.70)
-    ct1, ct2, ct3, ct4 = st.columns(4)
-    with ct1: st.markdown(card("Concluido", f"R${resultado_total:,.2f}", f"{len(df_f)} registros"), unsafe_allow_html=True)
-    with ct2: st.markdown(card("Em Tramitacao", f"R${tram_total:,.2f}", f"{tram_regs} pedidos", accent=True), unsafe_allow_html=True)
-    with ct3: st.markdown(card("Estimativa Otimista", f"R${estimativa_otimista:,.2f}", "100% concluir"), unsafe_allow_html=True)
-    with ct4: st.markdown(card("Estimativa Realista", f"R${estimativa_realista:,.2f}", "70% concluir (-30%)", accent=True), unsafe_allow_html=True)
-    st.markdown(f'<div style="background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:12px;margin:10px 0;"><b style="color:#e65100;">Atencao:</b> <span style="color:#bf360c;">Historicamente, ~30% dos pedidos em tramitacao podem nao ser concluidos (cancelamentos, credito reprovado, desistencias). A estimativa realista ja considera esse corte.</span></div>', unsafe_allow_html=True)
+
+    tram_novo_val = df_tram[df_tram['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+    tram_taxa_novo = (tram_novo_val / tram_total * 100) if tram_total > 0 else 0
+    tram_indicator = "up" if tram_taxa_novo >= 50 else ("neutral" if tram_taxa_novo >= 30 else "down")
+
+    ct1, ct2, ct3, ct4, ct5 = st.columns(5)
+    with ct1: st.markdown(card("Concluído", f"R${resultado_total:,.2f}", f"{len(df_f)} registros"), unsafe_allow_html=True)
+    with ct2: st.markdown(card("Em Tramitação", f"R${tram_total:,.2f}", f"{tram_regs} pedidos", accent=True), unsafe_allow_html=True)
+    with ct3: st.markdown(card("Est. Otimista", f"R${estimativa_otimista:,.2f}", "100% concluir"), unsafe_allow_html=True)
+    with ct4: st.markdown(card("Est. Realista", f"R${estimativa_realista:,.2f}", "70% (-30%)", accent=True, indicator="up" if estimativa_realista > resultado_total * 1.5 else "neutral"), unsafe_allow_html=True)
+    with ct5: st.markdown(card("Taxa Novo (Tram)", f"{tram_taxa_novo:.1f}%", "nos pedidos em tramitação", indicator=tram_indicator), unsafe_allow_html=True)
+
+    st.markdown(f'<div style="background:rgba(255,152,0,0.08);border:1px solid rgba(255,152,0,0.3);border-radius:10px;padding:14px;margin:12px 0;"><b style="color:#ffb74d;">Atenção:</b> <span style="color:{TEXT_DIM};">~30% dos pedidos em tramitação podem não ser concluídos. A estimativa realista já considera esse corte.</span></div>', unsafe_allow_html=True)
+
     st.markdown("#### Por Pipeline")
     for _, row in df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index().iterrows():
-        st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #e8e0f7;"><div style="flex:1;color:#333;font-size:13px;font-weight:500;">{row["PIPELINE"]}</div><div style="color:#888;font-size:12px;margin-right:12px;">{int(row["QTD"])} pedidos</div><div style="color:{P};font-weight:bold;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="flex:1;color:#fff;font-size:13px;font-weight:500;">{row["PIPELINE"]}</div><div style="color:{TEXT_DIM};font-size:12px;margin-right:14px;">{int(row["QTD"])} pedidos</div><div style="color:{P};font-weight:700;font-size:13px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("#### Por Fase")
     for _, row in df_tram.groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index().iterrows():
-        st.markdown(f'<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #f0eaf7;"><div style="flex:1;color:#555;font-size:12px;">{row["FASE"]}</div><div style="color:#888;font-size:11px;margin-right:12px;">{int(row["QTD"])}x</div><div style="color:{P2};font-weight:bold;font-size:12px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(123,47,247,0.06);"><div style="flex:1;color:{TEXT};font-size:12px;">{row["FASE"]}</div><div style="color:{TEXT_DIM};font-size:11px;margin-right:14px;">{int(row["QTD"])}x</div><div style="color:{P2};font-weight:700;font-size:12px;">R${row["VALOR"]:,.2f}</div></div>', unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("#### Detalhamento")
     cols_tram = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
@@ -290,18 +432,18 @@ with tab6:
 with tab3:
     st.markdown("## Buscar Pedido")
     col_b1, col_b2 = st.columns(2)
-    with col_b1: busca_nome = st.text_input("Buscar por Nome do Negocio / Cliente")
-    with col_b2: busca_resp = st.selectbox("Filtrar por Responsavel", ["Todos"] + sorted(df['RESPONSAVEL'].unique().tolist()), key="busca_resp")
+    with col_b1: busca_nome = st.text_input("Buscar por Nome / Cliente")
+    with col_b2: busca_resp = st.selectbox("Responsável", ["Todos"] + sorted(df['RESPONSAVEL'].unique().tolist()), key="busca_resp")
     df_busca = df_f.copy()
     if busca_nome: df_busca = df_busca[df_busca['NOME_NEGOCIO'].str.contains(busca_nome, case=False, na=False)]
     if busca_resp != "Todos": df_busca = df_busca[df_busca['RESPONSAVEL'] == busca_resp]
-    st.markdown(f"**{len(df_busca)} resultado(s)**")
+    st.markdown(f'<p style="color:{TEXT_DIM};font-size:13px;"><b style="color:#fff;">{len(df_busca)}</b> resultado(s)</p>', unsafe_allow_html=True)
     for _, row in df_busca.head(50).iterrows():
-        st.markdown(f'<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:8px;padding:12px;margin:8px 0;border-left:3px solid {P};"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="color:#1a1a2e;font-size:13px;font-weight:bold;">{row.get("NOME_NEGOCIO","")}</div><div style="color:#666;font-size:11px;margin-top:4px;">{row.get("RESPONSAVEL","")} | {row.get("TORRE","")} | {row.get("TIPO_VENDA","")}</div></div><div style="text-align:right;"><div style="color:{P};font-size:18px;font-weight:bold;">R${row.get("VALOR_PRODUTO",0):,.2f}</div></div></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:12px;padding:14px;margin:8px 0;border-left:3px solid {P};transition:all 0.2s;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="color:#fff;font-size:13px;font-weight:600;">{row.get("NOME_NEGOCIO","")}</div><div style="color:{TEXT_DIM};font-size:11px;margin-top:4px;">{row.get("RESPONSAVEL","")} | {row.get("TORRE","")} | {row.get("TIPO_VENDA","")}</div></div><div style="text-align:right;"><div style="color:{P};font-size:20px;font-weight:700;">R${row.get("VALOR_PRODUTO",0):,.2f}</div></div></div></div>', unsafe_allow_html=True)
 
 with tab4:
     st.markdown("## Dados Completos")
-    st.markdown(f"**{len(df_f)} registros**")
+    st.markdown(f'<p style="color:{TEXT_DIM};"><b style="color:#fff;">{len(df_f)}</b> registros</p>', unsafe_allow_html=True)
     cols_show = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'LINHAS', 'CONCLUSAO_VIVO', 'PIPELINE', 'FASE', 'DEPARTAMENTO']
     available_cols = [c for c in cols_show if c in df_f.columns]
     st.dataframe(df_f[available_cols].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=600)
@@ -309,39 +451,40 @@ with tab4:
 with tab7:
     st.markdown("## Sobre o Dashboard")
     st.markdown(f"""
-<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:12px;padding:24px;margin:10px 0;">
+<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:16px;padding:28px;margin:10px 0;">
 
-### O que sao os Resultados?
-Pedidos **concluidos** no mes:
-- **Logistica**: todas as fases (pedido vendido, em entrega/ativacao)
-- **Fixa Basica / Avancados / Digitais(TI)**: apenas fase "Pedido Concluido"
+<h3 style="color:#fff !important;">O que são os Resultados?</h3>
+<p>Pedidos <b>concluídos</b> no mês:</p>
+<ul style="color:{TEXT};">
+<li><b>Logística</b>: todas as fases (pedido vendido, em entrega/ativação)</li>
+<li><b>Fixa Básica / Avançados / Digitais(TI)</b>: apenas fase "Pedido Concluído"</li>
+</ul>
+<p><b>Não contam</b>: DOWN, TT, Troca Pura, cancelados.</p>
 
-**Nao contam**: DOWN, TT, Troca Pura, cancelados.
+<hr style="border-color:rgba(123,47,247,0.2);">
 
----
+<h3 style="color:#fff !important;">O que está Tramitando?</h3>
+<p>Pedidos <b>em andamento</b> nos pipelines Pré Vendas, Inserção, Quality, Fixa Básica, Avançados, Digitais(TI).</p>
+<p><b>Excluídos</b>: Cancelado, Perda de Vendas, Crédito Reprovado/Negado, Cancelamento Comercial.</p>
 
-### O que esta Tramitando?
-Pedidos **em andamento** nos pipelines Pre Vendas, Insercao, Quality, Fixa Basica, Avancados, Digitais(TI).
+<hr style="border-color:rgba(123,47,247,0.2);">
 
-**Excluidos**: Cancelado, Perda de Vendas, Credito Reprovado/Negado, Cancelamento Comercial.
+<h3 style="color:#fff !important;">Taxa de Novo</h3>
+<p>Percentual do valor total que veio de vendas <b>NOVO</b> (Alta, Portabilidade). Indicador verde = acima de 50%, amarelo = 30-50%, vermelho = abaixo de 30%.</p>
 
----
+<hr style="border-color:rgba(123,47,247,0.2);">
 
-### Estimativa do Mes
-**Concluido + Tramitando = Estimativa**
+<h3 style="color:#fff !important;">Estimativa do Mês</h3>
+<p><b>Concluído + 70% Tramitando = Estimativa Realista</b></p>
 
----
+<hr style="border-color:rgba(123,47,247,0.2);">
 
-### Classificacao
-- **Torre**: Smart Empresas/Ilimitado = Movel
-- **Tipo Venda**: produto "| NOVO" ou Alta/Portabilidade = NOVO; com "MIGRACAO/PADRAO" = MIGRACAO
-- **Linhas**: MAX por pedido, minimo 1
-
----
-
-### Atualizacao
-Dados atualizados via notebook ETL. Historico com snapshots por data.
+<h3 style="color:#fff !important;">Classificação</h3>
+<ul style="color:{TEXT};">
+<li><b>Torre</b>: Smart Empresas/Ilimitado = Móvel</li>
+<li><b>Tipo Venda</b>: produto "| NOVO" ou Alta/Portabilidade = NOVO</li>
+<li><b>Linhas</b>: MAX por pedido, mínimo 1</li>
+</ul>
 
 </div>
 """, unsafe_allow_html=True)
-
