@@ -255,10 +255,8 @@ def count_linhas(dataframe):
         return 0
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
-LOGO_URL = "https://raw.githubusercontent.com/juanvtr/st_mirai/main/mir.png"
-
 with st.sidebar:
-    st.markdown(f'<div style="text-align:center;padding:16px 0 12px;"><img src="{LOGO_URL}" style="width:120px;border-radius:12px;opacity:0.9;margin-bottom:8px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:18px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:10px;margin:4px 0 0;letter-spacing:1px;text-transform:uppercase;">Dashboard de Vendas</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center;padding:14px 0 18px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:20px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:11px;margin:4px 0 0;">Parceira Vivo Empresas</p></div>', unsafe_allow_html=True)
     st.markdown("---")
     cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
     carga_labels = [str(c) for c in cargas]
@@ -266,23 +264,22 @@ with st.sidebar:
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
-    dept_sel = st.selectbox("Departamento", ["Todos"] + list(depts))
+    dept_sel = st.multiselect("Departamento", depts, default=depts)
     torres = sorted(df['TORRE'].unique())
     torre_sel = st.multiselect("Torre", torres, default=torres)
     tipos = ['MIGRAÇÃO', 'NOVO']
     tipo_sel = st.multiselect("Tipo de Venda", tipos, default=tipos)
+    st.markdown(f'<p style="color:{TEXT_DIM};font-size:10px;margin-top:8px;">Segure Ctrl para selecionar múltiplos itens</p>', unsafe_allow_html=True)
 
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
     df_f = df_f[df_f['MES'] == mes_sel]
-if dept_sel != "Todos":
-    df_f = df_f[df_f['DEPARTAMENTO'] == dept_sel]
+df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
 df_f = df_f[df_f['TORRE'].isin(torre_sel)]
 df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
 
 df_tram = df_tram_raw.copy()
-if dept_sel != "Todos":
-    df_tram = df_tram[df_tram['DEPARTAMENTO'] == dept_sel]
+df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
 df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
 df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
 
@@ -533,5 +530,3 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
-
-                                                                                                                                                                
