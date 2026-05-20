@@ -264,24 +264,30 @@ with st.sidebar:
     meses = sorted(df['MES'].dropna().unique(), reverse=True)
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
-    dept_sel = st.multiselect("Departamento", depts, default=depts)
+    dept_sel = st.multiselect("Departamento", depts, default=[], placeholder="Todos os departamentos")
     torres = sorted(df['TORRE'].unique())
-    torre_sel = st.multiselect("Torre", torres, default=torres)
+    torre_sel = st.multiselect("Torre", torres, default=[], placeholder="Todas as torres")
     tipos = ['MIGRAÇÃO', 'NOVO']
-    tipo_sel = st.multiselect("Tipo de Venda", tipos, default=tipos)
-    st.markdown(f'<p style="color:{TEXT_DIM};font-size:10px;margin-top:8px;">Segure Ctrl para selecionar múltiplos itens</p>', unsafe_allow_html=True)
+    tipo_sel = st.multiselect("Tipo de Venda", tipos, default=[], placeholder="Todos os tipos")
+    st.markdown(f'<p style="color:{TEXT_DIM};font-size:10px;margin-top:8px;">Selecione para filtrar. Vazio = todos.</p>', unsafe_allow_html=True)
 
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
     df_f = df_f[df_f['MES'] == mes_sel]
-df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
-df_f = df_f[df_f['TORRE'].isin(torre_sel)]
-df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
+if dept_sel:
+    df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
+if torre_sel:
+    df_f = df_f[df_f['TORRE'].isin(torre_sel)]
+if tipo_sel:
+    df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
 
 df_tram = df_tram_raw.copy()
-df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
-df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
-df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
+if dept_sel:
+    df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
+if torre_sel:
+    df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
+if tipo_sel:
+    df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
 
 total_novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
 total_geral = df_f['VALOR_PRODUTO'].sum()
