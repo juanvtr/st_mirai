@@ -118,7 +118,10 @@ def load_data():
 @st.cache_data(ttl=300)
 def load_metas():
     conn = get_connection()
-    df = conn.cursor().execute("SELECT * FROM MIRAI.PUBLIC.METAS_DEPARTAMENTO").fetch_pandas_all()
+    try:
+        df = conn.cursor().execute("SELECT * FROM MIRAI.PUBLIC.METAS_DEPARTAMENTO").fetch_pandas_all()
+    except Exception:
+        df = pd.DataFrame()
     conn.close()
     return df
 
@@ -135,6 +138,7 @@ def load_tramitando():
 df = load_data()
 df_metas = load_metas()
 df_tram = load_tramitando()
+has_metas = len(df_metas) > 0
 
 def card(title, value, sub="", accent=False):
     cls = "card-accent" if accent else "card"
@@ -221,37 +225,40 @@ with tab2:
 
 with tab5:
     st.markdown("## Metas vs Realizado")
-    realizado_list = []
-    for dept, grp in df_f.groupby('DEPARTAMENTO'):
-        aparelhos = grp[grp['PRODUTO'].str.upper().str.contains('IPHONE|SMARTPHONE', na=False)]
-        realizado_list.append({'DEPARTAMENTO': dept, 'REAL_MIG_MOVEL': grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(), 'REAL_MIG_FIXA': grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(), 'REAL_NOVO': grp[grp['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum(), 'REAL_MIG': grp[grp['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum(), 'REAL_TOTAL': grp['VALOR_PRODUTO'].sum(), 'REAL_MIG_MOVEL_QTD': count_linhas(grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]), 'REAL_MIG_FIXA_QTD': count_linhas(grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]), 'REAL_APARELHOS_QTD': count_linhas(aparelhos) if len(aparelhos) > 0 else 0})
-    realizado = pd.DataFrame(realizado_list)
-    merged = df_metas.merge(realizado, on='DEPARTAMENTO', how='left').fillna(0)
-    def pct_bar(real, meta, label_r, label_m):
-        pct = (real / meta * 100) if meta > 0 else 0
-        if pct >= 100: color = '#4CAF50'
-        elif pct >= 75: color = '#7B2FF7'
-        elif pct >= 50: color = '#9D4EDD'
-        elif pct >= 25: color = '#C77DFF'
-        else: color = '#E0AAFF'
-        width = min(pct, 100)
-        return f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>{label_r}: <b style="color:#333">R${real:,.2f}</b></span><span>Meta: <b>R${meta:,.2f}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color};border-radius:6px;height:14px;width:{width}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color};font-weight:bold;">{pct:.1f}%</div></div>'
-    for _, row in merged.iterrows():
-        dept = row['DEPARTAMENTO']; meta_novo = float(row['META_NOVO_TOTAL']); meta_mig = float(row['META_MIGRACAO_TOTAL'])
-        real_novo = float(row['REAL_NOVO']); real_mig = float(row['REAL_MIG']); meta_total = meta_novo + meta_mig; real_total = float(row['REAL_TOTAL'])
-        pct_total = (real_total / meta_total * 100) if meta_total > 0 else 0
-        badge_color = '#4CAF50' if pct_total >= 100 else '#7B2FF7' if pct_total >= 50 else '#9D4EDD'
-        st.markdown(f'<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:12px;padding:16px;margin:10px 0;border-left:4px solid {badge_color};"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#1a1a2e;font-size:16px;font-weight:700;">{dept}</div><div style="background:{badge_color};color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;">{pct_total:.0f}% total</div></div></div>', unsafe_allow_html=True)
-        real_ap_qtd = int(row['REAL_APARELHOS_QTD']); meta_ap_qtd = int(row['META_APARELHOS_QTD'])
-        ca1, ca2, ca3 = st.columns(3)
-        with ca1: st.markdown(pct_bar(real_novo, meta_novo, "Novo", "Meta"), unsafe_allow_html=True)
-        with ca2: st.markdown(pct_bar(real_mig, meta_mig, "Migracao", "Meta"), unsafe_allow_html=True)
-        with ca3:
-            pct_ap = (real_ap_qtd / meta_ap_qtd * 100) if meta_ap_qtd > 0 else 0
-            color_ap = '#4CAF50' if pct_ap >= 100 else '#7B2FF7' if pct_ap >= 50 else '#9D4EDD'
-            width_ap = min(pct_ap, 100)
-            st.markdown(f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>Aparelhos: <b style="color:#333">{real_ap_qtd}</b></span><span>Meta: <b>{meta_ap_qtd}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color_ap};border-radius:6px;height:14px;width:{width_ap}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color_ap};font-weight:bold;">{pct_ap:.0f}% ({real_ap_qtd}/{meta_ap_qtd})</div></div>', unsafe_allow_html=True)
-        st.markdown("---")
+    if not has_metas:
+        st.warning("Tabela METAS_DEPARTAMENTO não encontrada. Cadastre as metas para ver o progresso.")
+    else:
+        realizado_list = []
+        for dept, grp in df_f.groupby('DEPARTAMENTO'):
+            aparelhos = grp[grp['PRODUTO'].str.upper().str.contains('IPHONE|SMARTPHONE', na=False)]
+            realizado_list.append({'DEPARTAMENTO': dept, 'REAL_MIG_MOVEL': grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(), 'REAL_MIG_FIXA': grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum(), 'REAL_NOVO': grp[grp['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum(), 'REAL_MIG': grp[grp['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum(), 'REAL_TOTAL': grp['VALOR_PRODUTO'].sum(), 'REAL_MIG_MOVEL_QTD': count_linhas(grp[(grp['TORRE'] == 'Móvel') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]), 'REAL_MIG_FIXA_QTD': count_linhas(grp[(grp['TORRE'] == 'Fixa PJ') & (grp['TIPO_VENDA'] == 'MIGRAÇÃO')]), 'REAL_APARELHOS_QTD': count_linhas(aparelhos) if len(aparelhos) > 0 else 0})
+        realizado = pd.DataFrame(realizado_list)
+        merged = df_metas.merge(realizado, on='DEPARTAMENTO', how='left').fillna(0)
+        def pct_bar(real, meta, label_r, label_m):
+            pct = (real / meta * 100) if meta > 0 else 0
+            if pct >= 100: color = '#4CAF50'
+            elif pct >= 75: color = '#7B2FF7'
+            elif pct >= 50: color = '#9D4EDD'
+            elif pct >= 25: color = '#C77DFF'
+            else: color = '#E0AAFF'
+            width = min(pct, 100)
+            return f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>{label_r}: <b style="color:#333">R${real:,.2f}</b></span><span>Meta: <b>R${meta:,.2f}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color};border-radius:6px;height:14px;width:{width}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color};font-weight:bold;">{pct:.1f}%</div></div>'
+        for _, row in merged.iterrows():
+            dept = row['DEPARTAMENTO']; meta_novo = float(row['META_NOVO_TOTAL']); meta_mig = float(row['META_MIGRACAO_TOTAL'])
+            real_novo = float(row['REAL_NOVO']); real_mig = float(row['REAL_MIG']); meta_total = meta_novo + meta_mig; real_total = float(row['REAL_TOTAL'])
+            pct_total = (real_total / meta_total * 100) if meta_total > 0 else 0
+            badge_color = '#4CAF50' if pct_total >= 100 else '#7B2FF7' if pct_total >= 50 else '#9D4EDD'
+            st.markdown(f'<div style="background:{CARD};border:1px solid #e8e0f7;border-radius:12px;padding:16px;margin:10px 0;border-left:4px solid {badge_color};"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="color:#1a1a2e;font-size:16px;font-weight:700;">{dept}</div><div style="background:{badge_color};color:white;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;">{pct_total:.0f}% total</div></div></div>', unsafe_allow_html=True)
+            real_ap_qtd = int(row['REAL_APARELHOS_QTD']); meta_ap_qtd = int(row['META_APARELHOS_QTD'])
+            ca1, ca2, ca3 = st.columns(3)
+            with ca1: st.markdown(pct_bar(real_novo, meta_novo, "Novo", "Meta"), unsafe_allow_html=True)
+            with ca2: st.markdown(pct_bar(real_mig, meta_mig, "Migracao", "Meta"), unsafe_allow_html=True)
+            with ca3:
+                pct_ap = (real_ap_qtd / meta_ap_qtd * 100) if meta_ap_qtd > 0 else 0
+                color_ap = '#4CAF50' if pct_ap >= 100 else '#7B2FF7' if pct_ap >= 50 else '#9D4EDD'
+                width_ap = min(pct_ap, 100)
+                st.markdown(f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:#666;"><span>Aparelhos: <b style="color:#333">{real_ap_qtd}</b></span><span>Meta: <b>{meta_ap_qtd}</b></span></div><div style="background:#e8e0f7;border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color_ap};border-radius:6px;height:14px;width:{width_ap}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color_ap};font-weight:bold;">{pct_ap:.0f}% ({real_ap_qtd}/{meta_ap_qtd})</div></div>', unsafe_allow_html=True)
+            st.markdown("---")
 
 with tab6:
     st.markdown("## Tramitando - Previsao")
@@ -337,3 +344,4 @@ Dados atualizados via notebook ETL. Historico com snapshots por data.
 
 </div>
 """, unsafe_allow_html=True)
+
