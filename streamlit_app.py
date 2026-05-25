@@ -384,7 +384,7 @@ def count_linhas(dataframe):
 st.markdown("""
 <div class="hero-shell">
     <div class="hero-eyebrow">Mirai Telecom · Parceira Vivo Empresas</div>
-    <div class="hero-title">Dashboard Comercial Premium</div>
+    <div class="hero-title">Dashboard Comercial </div>
     <p class="hero-subtitle">Acompanhamento executivo de vendas, mix Novo/Migração, metas, tramitação e performance por departamento e responsável.</p>
 </div>
 """, unsafe_allow_html=True)
