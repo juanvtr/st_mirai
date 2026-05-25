@@ -69,14 +69,14 @@ DEPT_MAP = {
     'Evelin Araújo': 'Time de Tramitação', 'Ivete Lemos': 'Time de Tramitação',
 }
 
-P = '#7B2FF7'
-P2 = '#9D4EDD'
-PA = '#5A189A'
-BG = '#0f0a1a'
-CARD_BG = 'rgba(20, 14, 40, 0.85)'
-CARD_BORDER = 'rgba(123, 47, 247, 0.25)'
-TEXT = '#e8e0f7'
-TEXT_DIM = '#a89cc8'
+P = '#7f4ca5'
+P2 = '#b57edc'
+PA = '#4b1c71'
+BG = '#1a0a2e'
+CARD_BG = 'rgba(75, 28, 113, 0.35)'
+CARD_BORDER = 'rgba(181, 126, 220, 0.3)'
+TEXT = '#fff0ff'
+TEXT_DIM = '#dbb6ee'
 
 BG_IMAGE_URL = "https://raw.githubusercontent.com/juanvtr/st_mirai/main/mir.png"
 
@@ -85,7 +85,7 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
     .stApp {{
-        background: linear-gradient(180deg, #0f0a1a 0%, #0a0620 50%, #12052b 100%);
+        background: linear-gradient(180deg, #1a0a2e 0%, #2d1250 50%, #4b1c71 100%);
         font-family: 'Inter', sans-serif;
     }}
     .stApp::before {{
@@ -113,13 +113,13 @@ st.markdown(f"""
     }}
     .metric-card:hover {{
         transform: translateY(-4px);
-        border-color: {P};
-        box-shadow: 0 8px 32px rgba(123, 47, 247, 0.2), 0 0 16px rgba(123, 47, 247, 0.1);
+        border-color: {P2};
+        box-shadow: 0 8px 32px rgba(181, 126, 220, 0.25), 0 0 16px rgba(181, 126, 220, 0.15);
     }}
     .metric-card-accent {{
-        background: linear-gradient(135deg, rgba(123,47,247,0.15), rgba(157,78,221,0.1));
+        background: linear-gradient(135deg, rgba(127,76,165,0.25), rgba(181,126,220,0.15));
         backdrop-filter: blur(12px);
-        border: 1px solid rgba(123, 47, 247, 0.4);
+        border: 1px solid rgba(181, 126, 220, 0.5);
         border-radius: 16px;
         padding: 20px 16px;
         text-align: center;
@@ -128,7 +128,7 @@ st.markdown(f"""
     }}
     .metric-card-accent:hover {{
         transform: translateY(-4px);
-        box-shadow: 0 8px 32px rgba(123, 47, 247, 0.3), 0 0 20px rgba(157, 78, 221, 0.15);
+        box-shadow: 0 8px 32px rgba(181, 126, 220, 0.3), 0 0 20px rgba(219, 182, 238, 0.15);
     }}
     .card-title {{ color: {TEXT_DIM}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }}
     .card-value {{ color: #ffffff; font-size: 24px; font-weight: 700; margin: 8px 0 4px; }}
@@ -347,7 +347,7 @@ with tab1:
         if t_mig + t_nov == 0:
             continue
         icon_url = TORRE_ICONS.get(torre_nome, '')
-        icon_html = f'<img src="{icon_url}" width="28" style="vertical-align:middle;margin-right:8px;">' if icon_url else ''
+        icon_html = f'<img src="{icon_url}" width="28" style="vertical-align:middle;margin-right:8px;filter:brightness(1.8) invert(1);">' if icon_url else ''
         st.markdown(f'<h4 style="display:flex;align-items:center;">{icon_html}{torre_nome}</h4>', unsafe_allow_html=True)
         ct1, ct2, ct3 = st.columns(3)
         with ct1: st.markdown(card(f"{torre_nome} Total", f"R${t_mig+t_nov:,.2f}", f"{t_mig_linhas+t_nov_linhas} linhas"), unsafe_allow_html=True)
@@ -355,7 +355,7 @@ with tab1:
         with ct3: st.markdown(card(f"Novo {torre_nome}", f"R${t_nov:,.2f}", f"{t_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
 
     st.markdown("---")
-    icon_aparelho_html = f'<img src="{APARELHO_ICON}" width="28" style="vertical-align:middle;margin-right:8px;">'
+    icon_aparelho_html = f'<img src="{APARELHO_ICON}" width="28" style="vertical-align:middle;margin-right:8px;filter:brightness(1.8) invert(1);">'
     st.markdown(f'<h4 style="display:flex;align-items:center;">{icon_aparelho_html}Aparelhos</h4>', unsafe_allow_html=True)
     aparelhos_kw = ['IPHONE', 'SMARTPHONE', 'GALAXY', 'MOTOROLA', 'SAMSUNG', 'XIAOMI', 'REDMI', 'TABLET', 'RELÓGIO', 'WATCH', 'ROTEADOR']
     df_aparelhos = df_f[df_f['PRODUTO'].str.upper().apply(lambda x: any(kw in x for kw in aparelhos_kw))]
