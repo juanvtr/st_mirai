@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 import snowflake.connector
 
-st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide", initial_sidebar_state="collapsed")
 
 DEPT_MAP = {
     'Pamela Antunes': 'Inside Sales', 'Debora Paes': 'Inside Sales',
@@ -282,6 +282,30 @@ p, span, div {{ color: {TEXT}; }}
     border: 1px solid rgba(192,132,252,.18);
 }}
 hr {{ border-color: rgba(192,132,252,.12) !important; }}
+
+/* Premium top filter bar */
+section[data-testid="stSidebar"] {{ display: none !important; }}
+[data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
+.hero-shell {{ padding: 26px 28px; margin: 0 0 18px 0; border-radius: 28px; background: linear-gradient(135deg, rgba(139,92,246,.24), rgba(192,132,252,.08)), rgba(7,3,20,.58); border: 1px solid rgba(192,132,252,.20); box-shadow: 0 22px 80px rgba(0,0,0,.30); backdrop-filter: blur(24px); }}
+.hero-eyebrow {{ display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(192,132,252,.20); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; }}
+.hero-title {{ margin: 12px 0 6px; font-size: 38px; font-weight: 900; letter-spacing: -1.4px; color: #fff; }}
+.hero-subtitle {{ margin: 0; max-width: 860px; color: var(--muted); font-size: 14px; line-height: 1.55; }}
+.filter-shell {{ padding: 18px 20px 12px; margin: 0 0 18px 0; border-radius: 24px; background: rgba(7,3,20,.62); border: 1px solid rgba(192,132,252,.18); box-shadow: 0 18px 55px rgba(0,0,0,.24); backdrop-filter: blur(22px); }}
+.filter-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
+.filter-title strong {{ color: #fff; font-size: 14px; letter-spacing: -.2px; }}
+.filter-title span {{ color: var(--muted); font-size: 11px; }}
+.ranking-shell {{ padding: 20px; border-radius: 24px; background: rgba(7,3,20,.52); border: 1px solid rgba(192,132,252,.18); box-shadow: 0 18px 55px rgba(0,0,0,.22); }}
+.rank-row {{ display: grid; grid-template-columns: 44px 1.3fr .8fr .65fr .65fr; gap: 14px; align-items: center; padding: 13px 10px; border-bottom: 1px solid rgba(192,132,252,.10); }}
+.rank-row:last-child {{ border-bottom: 0; }}
+.rank-pos {{ width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: linear-gradient(135deg, rgba(139,92,246,.50), rgba(192,132,252,.22)); color: #fff; font-size: 13px; font-weight: 900; }}
+.rank-name {{ color: #fff; font-size: 13px; font-weight: 800; }}
+.rank-dept {{ color: var(--muted); font-size: 11px; margin-top: 3px; }}
+.rank-value {{ color: #fff; font-size: 14px; font-weight: 900; text-align: right; }}
+.rank-muted {{ color: var(--muted); font-size: 11px; text-align: right; font-weight: 700; }}
+.rank-bar-wrap {{ height: 8px; border-radius: 999px; background: rgba(255,255,255,.075); overflow: hidden; }}
+.rank-bar {{ height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--p), var(--p2)); }}
+@media (max-width: 900px) {{ .rank-row {{ grid-template-columns: 34px 1fr; }} .rank-value, .rank-muted, .rank-bar-wrap {{ display: none; }} }}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -356,26 +380,44 @@ def count_linhas(dataframe):
         return 0
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
-with st.sidebar:
-    st.markdown(f'''
-    <div class="sidebar-brand">
-        <h2>Mirai Telecom</h2>
-        <p>Parceira Vivo Empresas</p>
+# Header premium + filtros centralizados
+st.markdown("""
+<div class="hero-shell">
+    <div class="hero-eyebrow">Mirai Telecom · Parceira Vivo Empresas</div>
+    <div class="hero-title">Dashboard Comercial Premium</div>
+    <p class="hero-subtitle">Acompanhamento executivo de vendas, mix Novo/Migração, metas, tramitação e performance por departamento e responsável.</p>
+</div>
+""", unsafe_allow_html=True)
+
+cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
+carga_labels = [str(c) for c in cargas]
+meses = sorted(df['MES'].dropna().unique(), reverse=True)
+depts = sorted(df['DEPARTAMENTO'].unique())
+torres = sorted(set(df['TORRE'].dropna().unique()) | set(df_tram_raw['TORRE'].dropna().unique()))
+tipos = ['MIGRAÇÃO', 'NOVO']
+
+st.markdown("""
+<div class="filter-shell">
+    <div class="filter-title">
+        <strong>Filtros do painel</strong>
+        <span>Vazio = todos · filtros aplicados em todas as abas</span>
     </div>
-    ''', unsafe_allow_html=True)
-    st.markdown("---")
-    cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
-    carga_labels = [str(c) for c in cargas]
+</div>
+""", unsafe_allow_html=True)
+
+f1, f2, f3, f4, f5 = st.columns([1.05, .9, 1.45, 1.25, 1.1])
+with f1:
     carga_sel = st.selectbox("Snapshot", carga_labels, index=0)
-    meses = sorted(df['MES'].dropna().unique(), reverse=True)
+with f2:
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
-    depts = sorted(df['DEPARTAMENTO'].unique())
+with f3:
     dept_sel = st.multiselect("Departamento", depts, default=[], placeholder="Todos os departamentos")
-    torres = sorted(set(df['TORRE'].unique()) | set(df_tram_raw['TORRE'].dropna().unique()))
+with f4:
     torre_sel = st.multiselect("Torre", torres, default=[], placeholder="Todas as torres")
-    tipos = ['MIGRAÇÃO', 'NOVO']
+with f5:
     tipo_sel = st.multiselect("Tipo de Venda", tipos, default=[], placeholder="Todos os tipos")
-    st.markdown('<p class="sidebar-hint">Selecione para filtrar. Vazio = todos.</p>', unsafe_allow_html=True)
+
+st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
 
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
@@ -484,12 +526,93 @@ with tab1:
         st.info("Nenhum aparelho encontrado neste filtro.")
 
     st.markdown("---")
-    st.markdown("#### Ranking por Departamento")
-    dept_resumo = df_f.groupby('DEPARTAMENTO')['VALOR_PRODUTO'].sum().sort_values(ascending=False).reset_index()
-    for _, row in dept_resumo.iterrows():
-        pct = (row['VALOR_PRODUTO']/total*100) if total > 0 else 0
-        bar_width = min(pct * 2, 100)
-        st.markdown(f'<div style="padding:10px 0;border-bottom:1px solid rgba(123,47,247,0.1);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="color:#fff;font-size:13px;font-weight:500;">{row["DEPARTAMENTO"]}</span><span style="color:{P};font-weight:700;font-size:13px;">R${row["VALOR_PRODUTO"]:,.2f} <span style="color:{TEXT_DIM};font-size:11px;">({pct:.1f}%)</span></span></div><div style="background:rgba(123,47,247,0.1);border-radius:4px;height:6px;"><div style="background:linear-gradient(90deg,{P},{P2});border-radius:4px;height:6px;width:{bar_width}%;transition:width 0.5s;"></div></div></div>', unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("#### Ranking Premium por Departamento e Responsável")
+
+    dept_options_rank = ["Todos os departamentos"] + sorted(df_f['DEPARTAMENTO'].dropna().unique().tolist())
+    dept_rank_sel = st.selectbox(
+        "Clique/selecione um departamento para abrir o ranking interno",
+        dept_options_rank,
+        key="dept_rank_sel"
+    )
+
+    if dept_rank_sel == "Todos os departamentos":
+        df_rank_base = df_f.copy()
+        ranking_title = "Ranking geral de responsáveis"
+    else:
+        df_rank_base = df_f[df_f['DEPARTAMENTO'] == dept_rank_sel].copy()
+        ranking_title = f"Ranking interno · {dept_rank_sel}"
+
+    if len(df_rank_base) == 0:
+        st.info("Nenhum dado encontrado para o departamento selecionado com os filtros atuais.")
+    else:
+        rank_resp = (
+            df_rank_base
+            .groupby(['DEPARTAMENTO', 'RESPONSAVEL'], dropna=False)
+            .agg(
+                VALOR_TOTAL=('VALOR_PRODUTO', 'sum'),
+                VALOR_NOVO=('VALOR_PRODUTO', lambda s: df_rank_base.loc[s.index][df_rank_base.loc[s.index, 'TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()),
+                VALOR_MIGRACAO=('VALOR_PRODUTO', lambda s: df_rank_base.loc[s.index][df_rank_base.loc[s.index, 'TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()),
+                PEDIDOS=('NOME_NEGOCIO', 'nunique'),
+                LINHAS=('LINHAS', 'sum')
+            )
+            .reset_index()
+            .sort_values('VALOR_TOTAL', ascending=False)
+        )
+        rank_resp['TAXA_NOVO'] = (rank_resp['VALOR_NOVO'] / rank_resp['VALOR_TOTAL'] * 100).fillna(0)
+        max_val = rank_resp['VALOR_TOTAL'].max() if len(rank_resp) else 0
+
+        rc1, rc2, rc3, rc4 = st.columns(4)
+        with rc1:
+            st.markdown(card("Departamento aberto", dept_rank_sel.replace("Todos os departamentos", "Todos"), f"{len(rank_resp)} responsáveis", accent=True), unsafe_allow_html=True)
+        with rc2:
+            st.markdown(card("Total no ranking", f"R${rank_resp['VALOR_TOTAL'].sum():,.2f}", f"{int(rank_resp['PEDIDOS'].sum())} pedidos"), unsafe_allow_html=True)
+        with rc3:
+            pct_novo_rank = (rank_resp['VALOR_NOVO'].sum()/rank_resp['VALOR_TOTAL'].sum()*100 if rank_resp['VALOR_TOTAL'].sum() > 0 else 0)
+            st.markdown(card("Novo no ranking", f"R${rank_resp['VALOR_NOVO'].sum():,.2f}", f"{pct_novo_rank:.1f}% do total"), unsafe_allow_html=True)
+        with rc4:
+            top_name = rank_resp.iloc[0]['RESPONSAVEL'] if len(rank_resp) else "-"
+            top_val = f"R${rank_resp.iloc[0]['VALOR_TOTAL']:,.2f}" if len(rank_resp) else ""
+            st.markdown(card("Top responsável", str(top_name), top_val), unsafe_allow_html=True)
+
+        st.markdown(f'<div class="ranking-shell"><h4 style="margin-top:0;">{ranking_title}</h4>', unsafe_allow_html=True)
+        for pos, row in enumerate(rank_resp.head(30).itertuples(index=False), start=1):
+            width = (row.VALOR_TOTAL / max_val * 100) if max_val > 0 else 0
+            st.markdown(f"""
+            <div class="rank-row">
+                <div class="rank-pos">{pos}</div>
+                <div>
+                    <div class="rank-name">{row.RESPONSAVEL}</div>
+                    <div class="rank-dept">{row.DEPARTAMENTO}</div>
+                </div>
+                <div class="rank-bar-wrap"><div class="rank-bar" style="width:{width:.1f}%"></div></div>
+                <div>
+                    <div class="rank-value">R${row.VALOR_TOTAL:,.2f}</div>
+                    <div class="rank-muted">{int(row.PEDIDOS)} pedidos · {int(row.LINHAS)} linhas</div>
+                </div>
+                <div>
+                    <div class="rank-value">{row.TAXA_NOVO:.1f}%</div>
+                    <div class="rank-muted">taxa novo</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        with st.expander("Ver tabela analítica do ranking"):
+            st.dataframe(
+                rank_resp.rename(columns={
+                    'DEPARTAMENTO': 'Departamento',
+                    'RESPONSAVEL': 'Responsável',
+                    'VALOR_TOTAL': 'Valor Total',
+                    'VALOR_NOVO': 'Valor Novo',
+                    'VALOR_MIGRACAO': 'Valor Migração',
+                    'PEDIDOS': 'Pedidos',
+                    'LINHAS': 'Linhas',
+                    'TAXA_NOVO': 'Taxa Novo (%)'
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
 
 with tab2:
     st.markdown("## Produtos Mais Vendidos")
@@ -676,4 +799,3 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
-
