@@ -69,126 +69,219 @@ DEPT_MAP = {
     'Evelin Araújo': 'Time de Tramitação', 'Ivete Lemos': 'Time de Tramitação',
 }
 
-P = '#7f4ca5'
-P2 = '#b57edc'
-PA = '#4b1c71'
-BG = '#1a0a2e'
-CARD_BG = 'rgba(75, 28, 113, 0.35)'
-CARD_BORDER = 'rgba(181, 126, 220, 0.3)'
-TEXT = '#fff0ff'
-TEXT_DIM = '#dbb6ee'
+P = '#8B5CF6'
+P2 = '#C084FC'
+PA = '#4C1D95'
+BG = '#070314'
+BG2 = '#160A2E'
+CARD_BG = 'rgba(39, 17, 73, 0.58)'
+CARD_BORDER = 'rgba(192, 132, 252, 0.28)'
+TEXT = '#F8F4FF'
+TEXT_DIM = '#BFA7DA'
+SUCCESS = '#22C55E'
+WARNING = '#F59E0B'
+DANGER = '#EF4444'
 
 BG_IMAGE_URL = "https://raw.githubusercontent.com/juanvtr/st_mirai/main/mir.png"
 
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    .stApp {{
-        background: linear-gradient(180deg, #1a0a2e 0%, #2d1250 50%, #4b1c71 100%);
-        font-family: 'Inter', sans-serif;
-    }}
-    .stApp::before {{
-        content: '';
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: url('{BG_IMAGE_URL}') center/cover no-repeat;
-        opacity: 0.08;
-        pointer-events: none;
-        z-index: 0;
-    }}
-    .main .block-container {{ position: relative; z-index: 1; }}
+:root {{
+    --p: {P};
+    --p2: {P2};
+    --bg: {BG};
+    --bg2: {BG2};
+    --card: {CARD_BG};
+    --border: {CARD_BORDER};
+    --text: {TEXT};
+    --muted: {TEXT_DIM};
+}}
 
-    .metric-card {{
-        background: {CARD_BG};
-        backdrop-filter: blur(12px);
-        border: 1px solid {CARD_BORDER};
-        border-radius: 16px;
-        padding: 20px 16px;
-        text-align: center;
-        margin-bottom: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }}
-    .metric-card:hover {{
-        transform: translateY(-4px);
-        border-color: {P2};
-        box-shadow: 0 8px 32px rgba(181, 126, 220, 0.25), 0 0 16px rgba(181, 126, 220, 0.15);
-    }}
-    .metric-card-accent {{
-        background: linear-gradient(135deg, rgba(127,76,165,0.25), rgba(181,126,220,0.15));
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(181, 126, 220, 0.5);
-        border-radius: 16px;
-        padding: 20px 16px;
-        text-align: center;
-        margin-bottom: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }}
-    .metric-card-accent:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 8px 32px rgba(181, 126, 220, 0.3), 0 0 20px rgba(219, 182, 238, 0.15);
-    }}
-    .card-title {{ color: {TEXT_DIM}; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }}
-    .card-value {{ color: #ffffff; font-size: 24px; font-weight: 700; margin: 8px 0 4px; }}
-    .card-sub {{ color: {P2}; font-size: 11px; font-weight: 500; }}
-    .card-indicator {{ font-size: 13px; font-weight: 600; margin-top: 4px; }}
-    .indicator-up {{ color: #4CAF50; }}
-    .indicator-down {{ color: #ef5350; }}
-    .indicator-neutral {{ color: {TEXT_DIM}; }}
+.stApp {{
+    background:
+        radial-gradient(circle at 78% 18%, rgba(139,92,246,.24), transparent 34%),
+        radial-gradient(circle at 18% 92%, rgba(192,132,252,.16), transparent 32%),
+        linear-gradient(135deg, #070314 0%, #120724 45%, #220B3F 100%);
+    font-family: 'Inter', sans-serif;
+}}
 
-    h1, h2, h3, h4 {{ color: #ffffff !important; font-family: 'Inter', sans-serif !important; }}
-    p, span, div {{ color: {TEXT}; }}
+.stApp::before {{
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: url('{BG_IMAGE_URL}') center right / cover no-repeat;
+    opacity: .075;
+    pointer-events: none;
+    z-index: 0;
+}}
 
-    section[data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, #0a0518 0%, #0f0825 100%) !important;
-        border-right: 1px solid {CARD_BORDER};
-    }}
-    section[data-testid="stSidebar"] .stMarkdown {{ color: {TEXT} !important; }}
+.main .block-container {{
+    max-width: 1560px;
+    padding-top: 2rem;
+    padding-left: 3rem;
+    padding-right: 3rem;
+    position: relative;
+    z-index: 1;
+}}
 
-    .stTabs [data-baseweb="tab-list"] {{
-        background-color: rgba(10, 5, 24, 0.95);
-        border-radius: 10px;
-        padding: 4px;
-        gap: 4px;
-        border: 1px solid {CARD_BORDER};
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        color: {TEXT_DIM} !important;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 13px;
-    }}
-    .stTabs [aria-selected="true"] {{
-        color: white !important;
-        background: linear-gradient(135deg, {P}, {P2}) !important;
-        border-radius: 8px;
-    }}
+section[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, rgba(7,3,20,.98), rgba(18,7,36,.96)) !important;
+    border-right: 1px solid rgba(192,132,252,.18);
+}}
 
-    .stSelectbox > div > div, .stMultiSelect > div > div {{
-        background-color: rgba(20, 14, 40, 0.9) !important;
-        border: 1px solid {CARD_BORDER} !important;
-        border-radius: 10px !important;
-        color: {TEXT} !important;
-    }}
-    .stSelectbox label, .stMultiSelect label {{
-        color: {TEXT_DIM} !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
-    }}
-    .stMultiSelect span[data-baseweb="tag"] {{
-        background-color: {P} !important;
-        color: white !important;
-        border-radius: 6px !important;
-    }}
+.sidebar-brand {{
+    padding: 22px 16px;
+    margin: 6px 0 18px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(139,92,246,.38), rgba(192,132,252,.16));
+    border: 1px solid rgba(192,132,252,.28);
+    box-shadow: 0 18px 50px rgba(0,0,0,.25);
+}}
+.sidebar-brand h2 {{
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: #fff !important;
+}}
+.sidebar-brand p {{
+    margin: 6px 0 0;
+    font-size: 11px;
+    color: var(--muted);
+}}
+.sidebar-hint {{
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 8px;
+    line-height: 1.5;
+}}
 
-    .stDataFrame {{ border-radius: 12px; overflow: hidden; }}
-    .stMarkdown hr {{ border-color: rgba(123, 47, 247, 0.15) !important; }}
-    .stTextInput > div > div {{ background-color: rgba(20, 14, 40, 0.9) !important; border: 1px solid {CARD_BORDER} !important; border-radius: 10px !important; color: white !important; }}
-    .stTextInput label {{ color: {TEXT_DIM} !important; }}
+.stTabs [data-baseweb="tab-list"] {{
+    background: rgba(7,3,20,.72);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(192,132,252,.18);
+    border-radius: 999px;
+    padding: 7px;
+    gap: 6px;
+}}
+.stTabs [data-baseweb="tab"] {{
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 999px;
+    color: var(--muted) !important;
+    font-weight: 700;
+    font-size: 13px;
+}}
+.stTabs [aria-selected="true"] {{
+    color: white !important;
+    background: linear-gradient(135deg, var(--p), var(--p2)) !important;
+    box-shadow: 0 10px 28px rgba(139,92,246,.35);
+}}
+
+h1 {{
+    color: white !important;
+    font-size: 42px !important;
+    letter-spacing: -1.4px;
+    font-weight: 800 !important;
+}}
+h2, h3, h4 {{
+    color: white !important;
+    letter-spacing: -.4px;
+    font-family: 'Inter', sans-serif !important;
+}}
+p, span, div {{ color: {TEXT}; }}
+
+.metric-card, .metric-card-accent {{
+    min-height: 132px;
+    background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018)), var(--card);
+    backdrop-filter: blur(22px);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px 22px;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 14px;
+    box-shadow: 0 18px 48px rgba(0,0,0,.22);
+    transition: .25s ease;
+}}
+.metric-card::after, .metric-card-accent::after {{
+    content: "";
+    position: absolute;
+    right: -36px;
+    top: -36px;
+    width: 96px;
+    height: 96px;
+    background: radial-gradient(circle, rgba(192,132,252,.28), transparent 68%);
+}}
+.metric-card:hover, .metric-card-accent:hover {{
+    transform: translateY(-5px);
+    border-color: rgba(192,132,252,.62);
+    box-shadow: 0 24px 70px rgba(139,92,246,.20);
+}}
+.metric-card-accent {{
+    background: linear-gradient(135deg, rgba(139,92,246,.34), rgba(192,132,252,.14)), rgba(39,17,73,.62);
+}}
+.card-title {{
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+}}
+.card-value {{
+    color: #fff;
+    font-size: 28px;
+    font-weight: 850;
+    margin-top: 14px;
+    letter-spacing: -.8px;
+}}
+.card-sub {{
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 5px;
+    font-weight: 600;
+}}
+.card-indicator {{
+    display: inline-flex;
+    margin-top: 12px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(255,255,255,.07);
+}}
+.indicator-up {{ color: {SUCCESS}; }}
+.indicator-down {{ color: {DANGER}; }}
+.indicator-neutral {{ color: #F5D0FE; }}
+
+.stSelectbox label, .stMultiSelect label, .stTextInput label {{
+    color: var(--muted) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}}
+.stSelectbox > div > div,
+.stMultiSelect > div > div,
+.stTextInput > div > div {{
+    background: rgba(255,255,255,.045) !important;
+    border: 1px solid rgba(192,132,252,.22) !important;
+    border-radius: 14px !important;
+    color: white !important;
+}}
+.stMultiSelect span[data-baseweb="tag"] {{
+    background: linear-gradient(135deg, var(--p), var(--p2)) !important;
+    color: white !important;
+    border-radius: 999px !important;
+}}
+[data-testid="stDataFrame"] {{
+    border-radius: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(192,132,252,.18);
+}}
+hr {{ border-color: rgba(192,132,252,.12) !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -264,7 +357,12 @@ def count_linhas(dataframe):
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
 with st.sidebar:
-    st.markdown(f'<div style="text-align:center;padding:14px 0 18px;"><h2 style="margin:0;background:linear-gradient(135deg,{P},{P2});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:20px;">Mirai Telecom</h2><p style="color:{TEXT_DIM};font-size:11px;margin:4px 0 0;">Parceira Vivo Empresas</p></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+    <div class="sidebar-brand">
+        <h2>Mirai Telecom</h2>
+        <p>Parceira Vivo Empresas</p>
+    </div>
+    ''', unsafe_allow_html=True)
     st.markdown("---")
     cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
     carga_labels = [str(c) for c in cargas]
@@ -277,7 +375,7 @@ with st.sidebar:
     torre_sel = st.multiselect("Torre", torres, default=[], placeholder="Todas as torres")
     tipos = ['MIGRAÇÃO', 'NOVO']
     tipo_sel = st.multiselect("Tipo de Venda", tipos, default=[], placeholder="Todos os tipos")
-    st.markdown(f'<p style="color:{TEXT_DIM};font-size:10px;margin-top:8px;">Selecione para filtrar. Vazio = todos.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sidebar-hint">Selecione para filtrar. Vazio = todos.</p>', unsafe_allow_html=True)
 
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
@@ -317,6 +415,7 @@ tab1, tab2, tab5, tab6, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Produtos", 
 
 with tab1:
     st.markdown("## Visão Geral")
+    st.caption("Painel executivo de vendas, metas, mix de novo/migração e performance por torre.")
     total = df_f['VALOR_PRODUTO'].sum()
     mig = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
     novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
@@ -577,3 +676,4 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
+
