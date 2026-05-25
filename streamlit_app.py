@@ -331,6 +331,13 @@ with tab1:
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
 
+    TORRE_ICONS = {
+        'Móvel': 'https://raw.githubusercontent.com/juanvtr/st_mirai/main/icons8-iphone-100.png',
+        'Fixa PJ': 'https://raw.githubusercontent.com/juanvtr/st_mirai/main/icons8-roteador-wifi-100.png',
+        'TI': 'https://raw.githubusercontent.com/juanvtr/st_mirai/main/icons8-tecnologia-da-informa%C3%A7%C3%A3o-64.png',
+    }
+    APARELHO_ICON = 'https://raw.githubusercontent.com/juanvtr/st_mirai/main/icons8-aparelhos-96.png'
+
     for torre_nome in sorted(df_f['TORRE'].unique()):
         torre_data = df_f[df_f['TORRE'] == torre_nome]
         t_mig = torre_data[torre_data['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
@@ -339,14 +346,17 @@ with tab1:
         t_nov_linhas = count_linhas(torre_data[torre_data['TIPO_VENDA'] == 'NOVO'])
         if t_mig + t_nov == 0:
             continue
-        st.markdown(f"#### {torre_nome}")
+        icon_url = TORRE_ICONS.get(torre_nome, '')
+        icon_html = f'<img src="{icon_url}" width="28" style="vertical-align:middle;margin-right:8px;">' if icon_url else ''
+        st.markdown(f'<h4 style="display:flex;align-items:center;">{icon_html}{torre_nome}</h4>', unsafe_allow_html=True)
         ct1, ct2, ct3 = st.columns(3)
         with ct1: st.markdown(card(f"{torre_nome} Total", f"R${t_mig+t_nov:,.2f}", f"{t_mig_linhas+t_nov_linhas} linhas"), unsafe_allow_html=True)
         with ct2: st.markdown(card(f"Mig. {torre_nome}", f"R${t_mig:,.2f}", f"{t_mig_linhas} linhas"), unsafe_allow_html=True)
         with ct3: st.markdown(card(f"Novo {torre_nome}", f"R${t_nov:,.2f}", f"{t_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("#### 📱 Aparelhos")
+    icon_aparelho_html = f'<img src="{APARELHO_ICON}" width="28" style="vertical-align:middle;margin-right:8px;">'
+    st.markdown(f'<h4 style="display:flex;align-items:center;">{icon_aparelho_html}Aparelhos</h4>', unsafe_allow_html=True)
     aparelhos_kw = ['IPHONE', 'SMARTPHONE', 'GALAXY', 'MOTOROLA', 'SAMSUNG', 'XIAOMI', 'REDMI', 'TABLET', 'RELÓGIO', 'WATCH', 'ROTEADOR']
     df_aparelhos = df_f[df_f['PRODUTO'].str.upper().apply(lambda x: any(kw in x for kw in aparelhos_kw))]
     aparelhos_qtd = len(df_aparelhos)
