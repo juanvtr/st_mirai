@@ -323,25 +323,19 @@ with tab1:
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
 
-    st.markdown("#### Móvel")
-    mov_mig = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
-    mov_nov = df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-    mov_mig_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
-    mov_nov_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Móvel') & (df_f['TIPO_VENDA'] == 'NOVO')])
-    cm1, cm2, cm3 = st.columns(3)
-    with cm1: st.markdown(card("Móvel Total", f"R${mov_mig+mov_nov:,.2f}", f"{mov_mig_linhas+mov_nov_linhas} linhas"), unsafe_allow_html=True)
-    with cm2: st.markdown(card("Mig. Móvel", f"R${mov_mig:,.2f}", f"{mov_mig_linhas} linhas"), unsafe_allow_html=True)
-    with cm3: st.markdown(card("Novo Móvel", f"R${mov_nov:,.2f}", f"{mov_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
-
-    st.markdown("#### Fixa PJ")
-    fix_mig = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')]['VALOR_PRODUTO'].sum()
-    fix_nov = df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')]['VALOR_PRODUTO'].sum()
-    fix_mig_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'MIGRAÇÃO')])
-    fix_nov_linhas = count_linhas(df_f[(df_f['TORRE'] == 'Fixa PJ') & (df_f['TIPO_VENDA'] == 'NOVO')])
-    cf1, cf2, cf3 = st.columns(3)
-    with cf1: st.markdown(card("Fixa Total", f"R${fix_mig+fix_nov:,.2f}", f"{fix_mig_linhas+fix_nov_linhas} linhas"), unsafe_allow_html=True)
-    with cf2: st.markdown(card("Mig. Fixa", f"R${fix_mig:,.2f}", f"{fix_mig_linhas} linhas"), unsafe_allow_html=True)
-    with cf3: st.markdown(card("Novo Fixa", f"R${fix_nov:,.2f}", f"{fix_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
+    for torre_nome in sorted(df_f['TORRE'].unique()):
+        torre_data = df_f[df_f['TORRE'] == torre_nome]
+        t_mig = torre_data[torre_data['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum()
+        t_nov = torre_data[torre_data['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
+        t_mig_linhas = count_linhas(torre_data[torre_data['TIPO_VENDA'] == 'MIGRAÇÃO'])
+        t_nov_linhas = count_linhas(torre_data[torre_data['TIPO_VENDA'] == 'NOVO'])
+        if t_mig + t_nov == 0:
+            continue
+        st.markdown(f"#### {torre_nome}")
+        ct1, ct2, ct3 = st.columns(3)
+        with ct1: st.markdown(card(f"{torre_nome} Total", f"R${t_mig+t_nov:,.2f}", f"{t_mig_linhas+t_nov_linhas} linhas"), unsafe_allow_html=True)
+        with ct2: st.markdown(card(f"Mig. {torre_nome}", f"R${t_mig:,.2f}", f"{t_mig_linhas} linhas"), unsafe_allow_html=True)
+        with ct3: st.markdown(card(f"Novo {torre_nome}", f"R${t_nov:,.2f}", f"{t_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("#### Ranking por Departamento")
