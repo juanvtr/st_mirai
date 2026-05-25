@@ -265,7 +265,7 @@ with st.sidebar:
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
     depts = sorted(df['DEPARTAMENTO'].unique())
     dept_sel = st.multiselect("Departamento", depts, default=[], placeholder="Todos os departamentos")
-    torres = sorted(df['TORRE'].unique())
+    torres = sorted(set(df['TORRE'].unique()) | set(df_tram_raw['TORRE'].dropna().unique()))
     torre_sel = st.multiselect("Torre", torres, default=[], placeholder="Todas as torres")
     tipos = ['MIGRAÇÃO', 'NOVO']
     tipo_sel = st.multiselect("Tipo de Venda", tipos, default=[], placeholder="Todos os tipos")
@@ -336,6 +336,23 @@ with tab1:
         with ct1: st.markdown(card(f"{torre_nome} Total", f"R${t_mig+t_nov:,.2f}", f"{t_mig_linhas+t_nov_linhas} linhas"), unsafe_allow_html=True)
         with ct2: st.markdown(card(f"Mig. {torre_nome}", f"R${t_mig:,.2f}", f"{t_mig_linhas} linhas"), unsafe_allow_html=True)
         with ct3: st.markdown(card(f"Novo {torre_nome}", f"R${t_nov:,.2f}", f"{t_nov_linhas} linhas", accent=True), unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("#### 📱 Aparelhos")
+    aparelhos_kw = ['IPHONE', 'SMARTPHONE', 'GALAXY', 'MOTOROLA', 'SAMSUNG', 'XIAOMI', 'REDMI']
+    df_aparelhos = df_f[df_f['PRODUTO'].str.upper().apply(lambda x: any(kw in x for kw in aparelhos_kw))]
+    aparelhos_valor = pd.to_numeric(
+        df_aparelhos['TOTAL_PRODUTO_STR'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False),
+        errors='coerce'
+    ).fillna(0).sum()
+    aparelhos_qtd = len(df_aparelhos)
+    ca1, ca2 = st.columns(2)
+    with ca1: st.markdown(card("Valor Aparelhos", f"R${aparelhos_valor:,.2f}", f"{aparelhos_qtd} unidades"), unsafe_allow_html=True)
+    with ca2:
+        if aparelhos_qtd > 0:
+            aparelhos_top = df_aparelhos['PRODUTO'].value_counts().head(3)
+            top_str = " | ".join([f"{p}: {c}" for p, c in aparelhos_top.items()])
+            st.markdown(card("Top Aparelhos", f"{aparelhos_qtd} un.", top_str), unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("#### Ranking por Departamento")
