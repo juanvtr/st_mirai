@@ -234,9 +234,17 @@ def load_tramitando():
     df['DEPARTAMENTO'] = df['RESPONSAVEL'].map(DEPT_MAP).fillna('Outros')
     return df
 
+@st.cache_data(ttl=300)
+def load_produtos():
+    conn = get_connection()
+    df = conn.cursor().execute("SELECT DISTINCT NOME_COMERCIAL, VALOR_10X, VALOR_24X, FABRICANTE, GAMA FROM MIRAI.PUBLIC.PRODUTOS_VIVO WHERE TIPO_MATERIAL = 'Aparelho'").fetch_pandas_all()
+    conn.close()
+    return df
+
 df = load_data()
 df_metas = load_metas()
 df_tram_raw = load_tramitando()
+df_produtos = load_produtos()
 has_metas = len(df_metas) > 0
 
 def card(title, value, sub="", accent=False, indicator=None):
@@ -339,20 +347,32 @@ with tab1:
 
     st.markdown("---")
     st.markdown("#### 📱 Aparelhos")
-    aparelhos_kw = ['IPHONE', 'SMARTPHONE', 'GALAXY', 'MOTOROLA', 'SAMSUNG', 'XIAOMI', 'REDMI']
+    aparelhos_kw = ['IPHONE', 'SMARTPHONE', 'GALAXY', 'MOTOROLA', 'SAMSUNG', 'XIAOMI', 'REDMI', 'TABLET', 'RELÓGIO', 'WATCH', 'ROTEADOR']
     df_aparelhos = df_f[df_f['PRODUTO'].str.upper().apply(lambda x: any(kw in x for kw in aparelhos_kw))]
-    aparelhos_valor = pd.to_numeric(
-        df_aparelhos['TOTAL_PRODUTO_STR'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False),
-        errors='coerce'
-    ).fillna(0).sum()
     aparelhos_qtd = len(df_aparelhos)
-    ca1, ca2 = st.columns(2)
-    with ca1: st.markdown(card("Valor Aparelhos", f"R${aparelhos_valor:,.2f}", f"{aparelhos_qtd} unidades"), unsafe_allow_html=True)
-    with ca2:
-        if aparelhos_qtd > 0:
+    if aparelhos_qtd > 0:
+        df_aparelhos = df_aparelhos.copy()
+        df_aparelhos['PRODUTO_UPPER'] = df_aparelhos['PRODUTO'].str.upper().str.strip()
+        df_preco = df_produtos[['NOME_COMERCIAL', 'VALOR_10X']].drop_duplicates(subset='NOME_COMERCIAL')
+        df_preco['PRODUTO_UPPER'] = df_preco['NOME_COMERCIAL'].str.upper().str.strip()
+        df_preco['PRECO'] = pd.to_numeric(df_preco['VALOR_10X'], errors='coerce').fillna(0)
+        df_aparelhos = df_aparelhos.merge(df_preco[['PRODUTO_UPPER', 'PRECO']], on='PRODUTO_UPPER', how='left')
+        df_aparelhos['PRECO'] = df_aparelhos['PRECO'].fillna(0)
+        aparelhos_valor = df_aparelhos['PRECO'].sum()
+        ca1, ca2, ca3 = st.columns(3)
+        with ca1: st.markdown(card("Valor Aparelhos (10x)", f"R${aparelhos_valor:,.2f}", f"{aparelhos_qtd} unidades"), unsafe_allow_html=True)
+        with ca2:
             aparelhos_top = df_aparelhos['PRODUTO'].value_counts().head(3)
-            top_str = " | ".join([f"{p}: {c}" for p, c in aparelhos_top.items()])
+            top_str = " | ".join([f"{p.split('(')[0].strip()}: {c}" for p, c in aparelhos_top.items()])
             st.markdown(card("Top Aparelhos", f"{aparelhos_qtd} un.", top_str), unsafe_allow_html=True)
+        with ca3:
+            sem_preco = df_aparelhos[df_aparelhos['PRECO'] == 0]
+            if len(sem_preco) > 0:
+                st.markdown(card("⚠ Sem preço tabela", f"{len(sem_preco)} un.", "Verificar cadastro"), unsafe_allow_html=True)
+            else:
+                st.markdown(card("✓ Todos com preço", f"{aparelhos_qtd} un.", "Tabela Vivo Tech"), unsafe_allow_html=True)
+    else:
+        st.info("Nenhum aparelho encontrado neste filtro.")
 
     st.markdown("---")
     st.markdown("#### Ranking por Departamento")
