@@ -431,6 +431,29 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
 
 @media (max-width: 900px) {{ .rank-row {{ grid-template-columns: 34px 1fr; }} .rank-value, .rank-muted, .rank-bar-wrap {{ display: none; }} }}
 
+
+.line-breakdown {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: 2px;
+}
+.line-breakdown span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(192,132,252,.12);
+    color: #C4B5FD;
+    font-size: 10px;
+    font-weight: 700;
+}
+.line-breakdown b {
+    color: #FFFFFF;
+    font-weight: 800;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -504,6 +527,12 @@ def count_linhas(dataframe):
     if len(dataframe) == 0:
         return 0
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
+
+def linhas_por_torre_text(dataframe):
+    """Retorna quebra compacta de linhas Móvel/Fixa para os cards gerais."""
+    movel = count_linhas(dataframe[dataframe['TORRE'] == 'Móvel']) if 'TORRE' in dataframe.columns else 0
+    fixa = count_linhas(dataframe[dataframe['TORRE'] == 'Fixa PJ']) if 'TORRE' in dataframe.columns else 0
+    return f'<span class="line-breakdown"><span>Móvel: <b>{movel}</b></span><span>Fixa: <b>{fixa}</b></span></span>'
 
 
 
@@ -657,9 +686,13 @@ with tab1:
     with c1:
         st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas"), unsafe_allow_html=True)
     with c2:
-        st.markdown(card("Migração", f"R${mig:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='MIGRAÇÃO'])} linhas"), unsafe_allow_html=True)
+        df_mig_card = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']
+        mig_sub = f"{count_linhas(df_mig_card)} linhas · {linhas_por_torre_text(df_mig_card)}"
+        st.markdown(card("Migração", f"R${mig:,.2f}", mig_sub), unsafe_allow_html=True)
     with c3:
-        st.markdown(card("Novo", f"R${novo:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='NOVO'])} linhas", accent=True), unsafe_allow_html=True)
+        df_novo_card = df_f[df_f['TIPO_VENDA'] == 'NOVO']
+        novo_sub = f"{count_linhas(df_novo_card)} linhas · {linhas_por_torre_text(df_novo_card)}"
+        st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True), unsafe_allow_html=True)
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
 
@@ -1027,3 +1060,4 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
+
