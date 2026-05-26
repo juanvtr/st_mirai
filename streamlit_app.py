@@ -283,14 +283,29 @@ p, span, div {{ color: {TEXT}; }}
 }}
 hr {{ border-color: rgba(192,132,252,.12) !important; }}
 
-/* Premium top filter bar */
+/* Top filter bar */
 section[data-testid="stSidebar"] {{ display: none !important; }}
 [data-testid="stSidebarCollapsedControl"] {{ display: none !important; }}
 .hero-shell {{ padding: 26px 28px; margin: 0 0 18px 0; border-radius: 28px; background: linear-gradient(135deg, rgba(139,92,246,.24), rgba(192,132,252,.08)), rgba(7,3,20,.58); border: 1px solid rgba(192,132,252,.20); box-shadow: 0 22px 80px rgba(0,0,0,.30); backdrop-filter: blur(24px); }}
 .hero-eyebrow {{ display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid rgba(192,132,252,.20); color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; }}
 .hero-title {{ margin: 12px 0 6px; font-size: 38px; font-weight: 900; letter-spacing: -1.4px; color: #fff; }}
 .hero-subtitle {{ margin: 0; max-width: 860px; color: var(--muted); font-size: 14px; line-height: 1.55; }}
-.filter-shell {{ padding: 18px 20px 12px; margin: 0 0 18px 0; border-radius: 24px; background: rgba(7,3,20,.62); border: 1px solid rgba(192,132,252,.18); box-shadow: 0 18px 55px rgba(0,0,0,.24); backdrop-filter: blur(22px); }}
+.filter-shell {{
+    position: sticky;
+    top: .75rem;
+    z-index: 999;
+    padding: 18px 20px 12px;
+    margin: 0 0 18px 0;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(7,3,20,.88), rgba(28,12,52,.82));
+    border: 1px solid rgba(192,132,252,.18);
+    box-shadow: 0 18px 55px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.04);
+    backdrop-filter: blur(22px);
+}}
+.filter-shell:hover {{
+    border-color: rgba(192,132,252,.32);
+    box-shadow: 0 22px 64px rgba(139,92,246,.18), inset 0 1px 0 rgba(255,255,255,.05);
+}}
 .filter-title {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
 .filter-title strong {{ color: #fff; font-size: 14px; letter-spacing: -.2px; }}
 .filter-title span {{ color: var(--muted); font-size: 11px; }}
@@ -304,6 +319,27 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
 .rank-muted {{ color: var(--muted); font-size: 11px; text-align: right; font-weight: 700; }}
 .rank-bar-wrap {{ height: 8px; border-radius: 999px; background: rgba(255,255,255,.075); overflow: hidden; }}
 .rank-bar {{ height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--p), var(--p2)); }}
+
+.mix-chart-shell {
+    padding: 22px 24px 24px;
+    margin: 4px 0 26px;
+    border-radius: 26px;
+    background: linear-gradient(145deg, rgba(255,255,255,.052), rgba(255,255,255,.018)), rgba(7,3,20,.54);
+    border: 1px solid rgba(192,132,252,.18);
+    box-shadow: 0 18px 55px rgba(0,0,0,.22);
+    backdrop-filter: blur(22px);
+}
+.mix-chart-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 14px; }
+.mix-chart-title { color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -.35px; }
+.mix-chart-subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
+.mix-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(192,132,252,.18); color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
+.mix-dot-novo { width: 9px; height: 9px; border-radius: 50%; background: #34D399; box-shadow: 0 0 16px rgba(52,211,153,.55); }
+.mix-dot-mig { width: 9px; height: 9px; border-radius: 50%; background: #A855F7; box-shadow: 0 0 16px rgba(168,85,247,.55); }
+.mix-insight { padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.045); border: 1px solid rgba(192,132,252,.14); }
+.mix-insight-label { color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .85px; }
+.mix-insight-value { color: #fff; font-size: 24px; line-height: 1.2; font-weight: 900; margin-top: 6px; }
+.mix-insight-sub { color: var(--muted); font-size: 11px; margin-top: 3px; }
+
 @media (max-width: 900px) {{ .rank-row {{ grid-template-columns: 34px 1fr; }} .rank-value, .rank-muted, .rank-bar-wrap {{ display: none; }} }}
 
 </style>
@@ -380,11 +416,130 @@ def count_linhas(dataframe):
         return 0
     return int(dataframe.groupby('NOME_NEGOCIO')['LINHAS'].max().clip(lower=1).sum())
 
-# Header premium + filtros centralizados
+
+def render_mix_novo_migracao(dataframe):
+    """Renderiza análise dinâmica do mix Novo x Migração respeitando os filtros globais."""
+    mix_base = dataframe[dataframe['TIPO_VENDA'].isin(['NOVO', 'MIGRAÇÃO'])].copy()
+
+    st.markdown("""
+    <div class="mix-chart-shell">
+        <div class="mix-chart-head">
+            <div>
+                <div class="mix-chart-title">Análise Novo x Migração</div>
+                <div class="mix-chart-subtitle">Participação percentual e valor vendido por tipo de venda, atualizados automaticamente conforme os filtros do painel.</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <span class="mix-pill"><span class="mix-dot-novo"></span>Novo</span>
+                <span class="mix-pill"><span class="mix-dot-mig"></span>Migração</span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if len(mix_base) == 0 or mix_base['VALOR_PRODUTO'].sum() <= 0:
+        st.info('Sem dados de Novo/Migração para os filtros selecionados.')
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    mix = (
+        mix_base.groupby('TIPO_VENDA', as_index=False)
+        .agg(VALOR=('VALOR_PRODUTO', 'sum'), PEDIDOS=('NOME_NEGOCIO', 'nunique'))
+    )
+
+    for tipo in ['NOVO', 'MIGRAÇÃO']:
+        if tipo not in mix['TIPO_VENDA'].values:
+            mix = pd.concat([mix, pd.DataFrame([{'TIPO_VENDA': tipo, 'VALOR': 0, 'PEDIDOS': 0}])], ignore_index=True)
+
+    mix['TIPO_LABEL'] = mix['TIPO_VENDA'].map({'NOVO': 'Novo', 'MIGRAÇÃO': 'Migração'})
+    total_mix = mix['VALOR'].sum()
+    mix['PERCENTUAL'] = (mix['VALOR'] / total_mix * 100) if total_mix > 0 else 0
+    mix['PERCENTUAL_LABEL'] = mix['PERCENTUAL'].apply(lambda v: f"{v:.1f}%")
+    mix['ORDEM'] = mix['TIPO_VENDA'].map({'NOVO': 1, 'MIGRAÇÃO': 2})
+    mix = mix.sort_values('ORDEM')
+
+    novo_pct = float(mix.loc[mix['TIPO_VENDA'] == 'NOVO', 'PERCENTUAL'].iloc[0])
+    mig_pct = float(mix.loc[mix['TIPO_VENDA'] == 'MIGRAÇÃO', 'PERCENTUAL'].iloc[0])
+    novo_val = float(mix.loc[mix['TIPO_VENDA'] == 'NOVO', 'VALOR'].iloc[0])
+    mig_val = float(mix.loc[mix['TIPO_VENDA'] == 'MIGRAÇÃO', 'VALOR'].iloc[0])
+
+    k1, k2, k3 = st.columns([1, 1, 2.2])
+    with k1:
+        st.markdown(f"""
+        <div class="mix-insight">
+            <div class="mix-insight-label">Novo</div>
+            <div class="mix-insight-value" style="color:#34D399;">{novo_pct:.1f}%</div>
+            <div class="mix-insight-sub">R${novo_val:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with k2:
+        st.markdown(f"""
+        <div class="mix-insight">
+            <div class="mix-insight-label">Migração</div>
+            <div class="mix-insight-value" style="color:#C084FC;">{mig_pct:.1f}%</div>
+            <div class="mix-insight-sub">R${mig_val:,.2f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with k3:
+        bar = (
+            alt.Chart(mix)
+            .mark_bar(cornerRadius=12, height=34)
+            .encode(
+                x=alt.X('PERCENTUAL:Q', stack='normalize', axis=None),
+                y=alt.value(30),
+                color=alt.Color('TIPO_LABEL:N', scale=alt.Scale(domain=['Novo', 'Migração'], range=['#34D399', '#A855F7']), legend=None),
+                order=alt.Order('ORDEM:Q'),
+                tooltip=[
+                    alt.Tooltip('TIPO_LABEL:N', title='Tipo'),
+                    alt.Tooltip('VALOR:Q', title='Valor', format=',.2f'),
+                    alt.Tooltip('PERCENTUAL:Q', title='Participação', format='.1f'),
+                    alt.Tooltip('PEDIDOS:Q', title='Pedidos'),
+                ],
+            )
+        )
+        labels = (
+            alt.Chart(mix[mix['PERCENTUAL'] >= 7])
+            .mark_text(font='Inter', fontSize=13, fontWeight='bold', color='white')
+            .encode(
+                x=alt.X('PERCENTUAL:Q', stack='normalize', axis=None),
+                y=alt.value(30),
+                text='PERCENTUAL_LABEL:N',
+                order=alt.Order('ORDEM:Q'),
+            )
+        )
+        st.altair_chart((bar + labels).properties(height=74).configure_view(strokeWidth=0).configure(background='transparent'), use_container_width=True)
+
+    donut = (
+        alt.Chart(mix)
+        .mark_arc(innerRadius=78, outerRadius=112, cornerRadius=8, stroke='#070314', strokeWidth=3)
+        .encode(
+            theta=alt.Theta('VALOR:Q', stack=True),
+            color=alt.Color('TIPO_LABEL:N', scale=alt.Scale(domain=['Novo', 'Migração'], range=['#34D399', '#A855F7']), legend=None),
+            order=alt.Order('ORDEM:Q'),
+            tooltip=[
+                alt.Tooltip('TIPO_LABEL:N', title='Tipo'),
+                alt.Tooltip('VALOR:Q', title='Valor', format=',.2f'),
+                alt.Tooltip('PERCENTUAL:Q', title='Participação', format='.1f'),
+            ],
+        )
+    )
+    donut_text = (
+        alt.Chart(pd.DataFrame({'txt': [f'{novo_pct:.1f}%'], 'sub': ['Novo']}))
+        .mark_text(font='Inter', fontSize=24, fontWeight='bold', color='#FFFFFF', dy=-7)
+        .encode(text='txt:N')
+    ) + (
+        alt.Chart(pd.DataFrame({'sub': ['Novo']}))
+        .mark_text(font='Inter', fontSize=12, fontWeight='bold', color='#BFA7DA', dy=18)
+        .encode(text='sub:N')
+    )
+
+    st.altair_chart((donut + donut_text).properties(height=285).configure_view(strokeWidth=0).configure(background='transparent'), use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# Header + filtros centralizados
 st.markdown("""
 <div class="hero-shell">
     <div class="hero-eyebrow">Mirai Telecom · Parceira Vivo Empresas</div>
-    <div class="hero-title">Dashboard Comercial </div>
+    <div class="hero-title">Dashboard Comercial</div>
     <p class="hero-subtitle">Acompanhamento executivo de vendas, mix Novo/Migração, metas, tramitação e performance por departamento e responsável.</p>
 </div>
 """, unsafe_allow_html=True)
@@ -400,9 +555,8 @@ st.markdown("""
 <div class="filter-shell">
     <div class="filter-title">
         <strong>Filtros do painel</strong>
-        <span>Vazio = todos · filtros aplicados em todas as abas</span>
+        <span>Dropdowns globais · filtros aplicados em todas as abas</span>
     </div>
-</div>
 """, unsafe_allow_html=True)
 
 f1, f2, f3, f4, f5 = st.columns([1.05, .9, 1.45, 1.25, 1.1])
@@ -411,31 +565,31 @@ with f1:
 with f2:
     mes_sel = st.selectbox("Mês", ["Todos"] + list(meses))
 with f3:
-    dept_sel = st.multiselect("Departamento", depts, default=[], placeholder="Todos os departamentos")
+    dept_sel = st.selectbox("Departamento", ["Todos"] + depts, index=0)
 with f4:
-    torre_sel = st.multiselect("Torre", torres, default=[], placeholder="Todas as torres")
+    torre_sel = st.selectbox("Torre", ["Todas"] + torres, index=0)
 with f5:
-    tipo_sel = st.multiselect("Tipo de Venda", tipos, default=[], placeholder="Todos os tipos")
+    tipo_sel = st.selectbox("Tipo de Venda", ["Todos"] + tipos, index=0)
 
-st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+st.markdown("</div><div style='height: 14px;'></div>", unsafe_allow_html=True)
 
 df_f = df[df['DATA_CARGA'] == pd.to_datetime(carga_sel).date()].copy()
 if mes_sel != "Todos":
     df_f = df_f[df_f['MES'] == mes_sel]
-if dept_sel:
-    df_f = df_f[df_f['DEPARTAMENTO'].isin(dept_sel)]
-if torre_sel:
-    df_f = df_f[df_f['TORRE'].isin(torre_sel)]
-if tipo_sel:
-    df_f = df_f[df_f['TIPO_VENDA'].isin(tipo_sel)]
+if dept_sel != "Todos":
+    df_f = df_f[df_f['DEPARTAMENTO'] == dept_sel]
+if torre_sel != "Todas":
+    df_f = df_f[df_f['TORRE'] == torre_sel]
+if tipo_sel != "Todos":
+    df_f = df_f[df_f['TIPO_VENDA'] == tipo_sel]
 
 df_tram = df_tram_raw.copy()
-if dept_sel:
-    df_tram = df_tram[df_tram['DEPARTAMENTO'].isin(dept_sel)]
-if torre_sel:
-    df_tram = df_tram[df_tram['TORRE'].isin(torre_sel)]
-if tipo_sel:
-    df_tram = df_tram[df_tram['TIPO_VENDA'].isin(tipo_sel)]
+if dept_sel != "Todos":
+    df_tram = df_tram[df_tram['DEPARTAMENTO'] == dept_sel]
+if torre_sel != "Todas":
+    df_tram = df_tram[df_tram['TORRE'] == torre_sel]
+if tipo_sel != "Todos":
+    df_tram = df_tram[df_tram['TIPO_VENDA'] == tipo_sel]
 
 total_novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
 total_geral = df_f['VALOR_PRODUTO'].sum()
@@ -471,6 +625,8 @@ with tab1:
         st.markdown(card("Novo", f"R${novo:,.2f}", f"{count_linhas(df_f[df_f['TIPO_VENDA']=='NOVO'])} linhas", accent=True), unsafe_allow_html=True)
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
+
+    render_mix_novo_migracao(df_f)
 
     TORRE_ICONS = {
         'Móvel': 'https://raw.githubusercontent.com/juanvtr/st_mirai/main/icons8-iphone-100.png',
@@ -527,7 +683,7 @@ with tab1:
 
     st.markdown("---")
     st.markdown("---")
-    st.markdown("#### Ranking Premium por Departamento e Responsável")
+    st.markdown("#### Ranking por Departamento e Responsável")
 
     dept_options_rank = ["Todos os departamentos"] + sorted(df_f['DEPARTAMENTO'].dropna().unique().tolist())
     dept_rank_sel = st.selectbox(
