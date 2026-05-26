@@ -320,7 +320,7 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
 .rank-bar-wrap {{ height: 8px; border-radius: 999px; background: rgba(255,255,255,.075); overflow: hidden; }}
 .rank-bar {{ height: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--p), var(--p2)); }}
 
-.mix-chart-shell {
+.mix-chart-shell {{
     padding: 22px 24px 24px;
     margin: 4px 0 26px;
     border-radius: 26px;
@@ -328,17 +328,17 @@ section[data-testid="stSidebar"] {{ display: none !important; }}
     border: 1px solid rgba(192,132,252,.18);
     box-shadow: 0 18px 55px rgba(0,0,0,.22);
     backdrop-filter: blur(22px);
-}
-.mix-chart-head { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 14px; }
-.mix-chart-title { color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -.35px; }
-.mix-chart-subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }
-.mix-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(192,132,252,.18); color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
-.mix-dot-novo { width: 9px; height: 9px; border-radius: 50%; background: #34D399; box-shadow: 0 0 16px rgba(52,211,153,.55); }
-.mix-dot-mig { width: 9px; height: 9px; border-radius: 50%; background: #A855F7; box-shadow: 0 0 16px rgba(168,85,247,.55); }
-.mix-insight { padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.045); border: 1px solid rgba(192,132,252,.14); }
-.mix-insight-label { color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .85px; }
-.mix-insight-value { color: #fff; font-size: 24px; line-height: 1.2; font-weight: 900; margin-top: 6px; }
-.mix-insight-sub { color: var(--muted); font-size: 11px; margin-top: 3px; }
+}}
+.mix-chart-head {{ display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 14px; }}
+.mix-chart-title {{ color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -.35px; }}
+.mix-chart-subtitle {{ color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.45; }}
+.mix-pill {{ display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(192,132,252,.18); color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }}
+.mix-dot-novo {{ width: 9px; height: 9px; border-radius: 50%; background: #34D399; box-shadow: 0 0 16px rgba(52,211,153,.55); }}
+.mix-dot-mig {{ width: 9px; height: 9px; border-radius: 50%; background: #A855F7; box-shadow: 0 0 16px rgba(168,85,247,.55); }}
+.mix-insight {{ padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.045); border: 1px solid rgba(192,132,252,.14); }}
+.mix-insight-label {{ color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .85px; }}
+.mix-insight-value {{ color: #fff; font-size: 24px; line-height: 1.2; font-weight: 900; margin-top: 6px; }}
+.mix-insight-sub {{ color: var(--muted); font-size: 11px; margin-top: 3px; }}
 
 @media (max-width: 900px) {{ .rank-row {{ grid-template-columns: 34px 1fr; }} .rank-value, .rank-muted, .rank-bar-wrap {{ display: none; }} }}
 
