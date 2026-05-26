@@ -432,13 +432,13 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
 @media (max-width: 900px) {{ .rank-row {{ grid-template-columns: 34px 1fr; }} .rank-value, .rank-muted, .rank-bar-wrap {{ display: none; }} }}
 
 
-.line-breakdown {
+.line-breakdown {{
     display: inline-flex;
     gap: 8px;
     flex-wrap: wrap;
     margin-left: 2px;
-}
-.line-breakdown span {
+}}
+.line-breakdown span {{
     display: inline-flex;
     align-items: center;
     gap: 3px;
@@ -449,11 +449,11 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     color: #C4B5FD;
     font-size: 10px;
     font-weight: 700;
-}
-.line-breakdown b {
+}}
+.line-breakdown b {{
     color: #FFFFFF;
     font-weight: 800;
-}
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1060,4 +1060,5 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
+
 
