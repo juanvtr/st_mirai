@@ -500,71 +500,34 @@ def load_tramitando():
     return df
 
 @st.cache_data(ttl=300)
+def load_previsao():
+    """Carrega a tabela de previsão, quando o ETL já tiver publicado MIRAI.PUBLIC.PREVISAO."""
+    conn = get_connection()
+    try:
+        df = conn.cursor().execute("SELECT * FROM MIRAI.PUBLIC.PREVISAO").fetch_pandas_all()
+    except Exception:
+        df = pd.DataFrame(columns=[
+            'NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA',
+            'VALOR_PRODUTO', 'LINHAS', 'PIPELINE', 'FASE', 'DATA_CARGA'
+        ])
+    conn.close()
+    if len(df) > 0:
+        df['VALOR_PRODUTO'] = pd.to_numeric(df.get('VALOR_PRODUTO', 0), errors='coerce').fillna(0)
+        df['LINHAS'] = pd.to_numeric(df.get('LINHAS', 0), errors='coerce').fillna(0)
+        df['DEPARTAMENTO'] = df['RESPONSAVEL'].map(DEPT_MAP).fillna('Outros')
+    return df
+
+@st.cache_data(ttl=300)
 def load_produtos():
     conn = get_connection()
     df = conn.cursor().execute("SELECT DISTINCT NOME_COMERCIAL, VALOR_10X, VALOR_24X, FABRICANTE, GAMA FROM MIRAI.PUBLIC.PRODUTOS_VIVO WHERE TIPO_MATERIAL = 'Aparelho'").fetch_pandas_all()
     conn.close()
     return df
 
-
-FASES_TRAM_FIXA = [
-    'Conferir instalação', 'Débito Interno', 'Reagendado', 'Pendente Reagendar',
-    'Input Automático', 'Analisar falha', 'Ag, Confirmação por Voz',
-    'Ag. Confirmação do Cliente', 'Problema na Técnica',
-    'Cliente com Reserva, ag. liberação'
-]
-
-FASES_TRAM_AVANCADOS = [
-    'Instalação Agendada', 'Aguardando faturamento', 'Aguardando Aceite'
-]
-
-FASES_TRAM_TI = [
-    'Testes', 'Aguardando confirmação'
-]
-
-def split_pipeline_previsao_tramitando(df_pipeline: pd.DataFrame):
-    """Separa a tabela MIRAI.PUBLIC.TRAMITANDO em Tramitando avançado e Previsão inicial, sem alterar o ETL.
-
-    A regra replica a lógica validada no notebook do ETL:
-    - Tramitando: Inserção, Fixa Básica em fases avançadas, Avançados em fases avançadas e Digitais(TI) em fases avançadas.
-    - Previsão: Quality, Pré vendas e fases ainda iniciais dos pipelines Fixa Básica, Avançados e Digitais(TI).
-    """
-    if df_pipeline is None or len(df_pipeline) == 0:
-        empty = df_pipeline.copy() if df_pipeline is not None else pd.DataFrame()
-        return empty, empty
-
-    df_tmp = df_pipeline.copy()
-    pipeline = df_tmp.get('PIPELINE', '').astype(str).str.strip()
-    fase = df_tmp.get('FASE', '').astype(str).str.strip()
-
-    is_tram = (
-        (pipeline.eq('Inserção')) |
-        ((pipeline.eq('Fixa Básica')) & (fase.isin(FASES_TRAM_FIXA))) |
-        ((pipeline.eq('Avançados')) & (fase.isin(FASES_TRAM_AVANCADOS))) |
-        ((pipeline.eq('Digitais(TI)')) & (fase.isin(FASES_TRAM_TI)))
-    )
-
-    is_prev = (
-        (pipeline.isin(['Quality', 'Pré vendas', 'Pré Vendas', 'Pré-vendas', 'Pre vendas', 'Pre Vendas'])) |
-        ((pipeline.eq('Fixa Básica')) & (~fase.isin(FASES_TRAM_FIXA))) |
-        ((pipeline.eq('Avançados')) & (~fase.isin(FASES_TRAM_AVANCADOS))) |
-        ((pipeline.eq('Digitais(TI)')) & (~fase.isin(FASES_TRAM_TI)))
-    )
-
-    # Evita duplicidade: se por algum motivo um registro cair nas duas regras, prioriza Tramitando.
-    df_tram_split = df_tmp[is_tram].copy()
-    df_prev_split = df_tmp[is_prev & ~is_tram].copy()
-
-    # Fallback: se a base tiver pipelines/fases fora das regras, mantém em Tramitando para não sumir do painel.
-    df_outros = df_tmp[~is_tram & ~is_prev].copy()
-    if len(df_outros) > 0:
-        df_tram_split = pd.concat([df_tram_split, df_outros], ignore_index=True)
-
-    return df_tram_split, df_prev_split
-
 df = load_data()
 df_metas = load_metas()
 df_tram_raw = load_tramitando()
+df_prev_raw = load_previsao()
 df_produtos = load_produtos()
 has_metas = len(df_metas) > 0
 
@@ -664,7 +627,7 @@ cargas = sorted(df['DATA_CARGA'].dropna().unique(), reverse=True)
 carga_labels = [str(c) for c in cargas]
 meses = sorted(df['MES'].dropna().unique(), reverse=True)
 depts = sorted(df['DEPARTAMENTO'].unique())
-torres = sorted(set(df['TORRE'].dropna().unique()) | set(df_tram_raw['TORRE'].dropna().unique()))
+torres = sorted(set(df['TORRE'].dropna().unique()) | set(df_tram_raw['TORRE'].dropna().unique()) | set(df_prev_raw['TORRE'].dropna().unique()))
 tipos = ['MIGRAÇÃO', 'NOVO']
 
 filter_box = st.container()
@@ -701,16 +664,22 @@ if torre_sel != "Todas":
 if tipo_sel != "Todos":
     df_f = df_f[df_f['TIPO_VENDA'] == tipo_sel]
 
-df_pipeline = df_tram_raw.copy()
+df_tram = df_tram_raw.copy()
 if dept_sel != "Todos":
-    df_pipeline = df_pipeline[df_pipeline['DEPARTAMENTO'] == dept_sel]
+    df_tram = df_tram[df_tram['DEPARTAMENTO'] == dept_sel]
 if torre_sel != "Todas":
-    df_pipeline = df_pipeline[df_pipeline['TORRE'] == torre_sel]
+    df_tram = df_tram[df_tram['TORRE'] == torre_sel]
 if tipo_sel != "Todos":
-    df_pipeline = df_pipeline[df_pipeline['TIPO_VENDA'] == tipo_sel]
+    df_tram = df_tram[df_tram['TIPO_VENDA'] == tipo_sel]
 
-# Sem mudar o ETL: a própria tabela TRAMITANDO é dividida em Tramitando avançado e Previsão inicial no dashboard.
-df_tram, df_prev = split_pipeline_previsao_tramitando(df_pipeline)
+df_prev = df_prev_raw.copy()
+if len(df_prev) > 0:
+    if dept_sel != "Todos":
+        df_prev = df_prev[df_prev['DEPARTAMENTO'] == dept_sel]
+    if torre_sel != "Todas":
+        df_prev = df_prev[df_prev['TORRE'] == torre_sel]
+    if tipo_sel != "Todos":
+        df_prev = df_prev[df_prev['TIPO_VENDA'] == tipo_sel]
 
 total_novo = df_f[df_f['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum()
 total_geral = df_f['VALOR_PRODUTO'].sum()
@@ -728,7 +697,7 @@ elif taxa_novo >= 30:
 else:
     novo_indicator = "down"
 
-tab1, tab_rank, tab2, tab5, tab6, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Ranking", "Produtos", "Metas", "Tramitando", "Buscar Pedido", "Dados", "Sobre"])
+tab1, tab_rank, tab2, tab5, tab_tram, tab_prev, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Ranking", "Produtos", "Metas", "Tramitando", "Previsão", "Buscar Pedido", "Dados", "Sobre"])
 
 with tab1:
     render_page_hero(
@@ -754,6 +723,55 @@ with tab1:
         st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True), unsafe_allow_html=True)
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
+
+    # Forecast executivo usando as três fontes do ETL atual:
+    # RELATORIO_HISTORICO = concluído | TRAMITANDO = pipeline avançado | PREVISAO = pipeline inicial
+    resultado_total = float(df_f['VALOR_PRODUTO'].sum())
+    tram_total = float(df_tram['VALOR_PRODUTO'].sum())
+    prev_total = float(df_prev['VALOR_PRODUTO'].sum()) if len(df_prev) > 0 else 0.0
+    peso_tramitando = 0.75
+    peso_previsao = 0.35
+    forecast_ponderado = resultado_total + (tram_total * peso_tramitando) + (prev_total * peso_previsao)
+    forecast_potencial = resultado_total + tram_total + prev_total
+    forecast_gap = max(forecast_potencial - forecast_ponderado, 0)
+
+    f1, f2, f3, f4 = st.columns(4)
+    with f1:
+        st.markdown(card("Concluído", f"R${resultado_total:,.2f}", "base realizada no mês"), unsafe_allow_html=True)
+    with f2:
+        st.markdown(card("Tramitando", f"R${tram_total:,.2f}", "peso no forecast: 75%", accent=True), unsafe_allow_html=True)
+    with f3:
+        st.markdown(card("Previsão", f"R${prev_total:,.2f}", "peso no forecast: 35%"), unsafe_allow_html=True)
+    with f4:
+        st.markdown(card("Forecast Ponderado", f"R${forecast_ponderado:,.2f}", f"Potencial: R${forecast_potencial:,.2f}", accent=True, indicator="up" if forecast_ponderado > resultado_total else "neutral"), unsafe_allow_html=True)
+
+    resultado_w = (resultado_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
+    tram_w = (tram_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
+    prev_w = (prev_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
+    st.markdown(f'''
+    <div class="mix-chart-shell" style="padding:16px 18px; margin: 2px 0 18px; border-radius:22px;">
+        <div class="mix-chart-head" style="margin-bottom:10px; align-items:center;">
+            <div>
+                <div class="mix-chart-title" style="font-size:15px;">Forecast Comercial</div>
+                <div class="mix-chart-subtitle">Concluído + 75% do Tramitando + 35% da Previsão. A barra mostra o potencial total por estágio.</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                <span class="mix-pill">Ponderado · R${forecast_ponderado:,.2f}</span>
+                <span class="mix-pill">Gap potencial · R${forecast_gap:,.2f}</span>
+            </div>
+        </div>
+        <div class="mix-compact-bar">
+            <div class="mix-compact-novo" style="width:{resultado_w:.2f}%;"></div>
+            <div class="mix-compact-mig" style="width:{tram_w:.2f}%;"></div>
+            <div style="height:100%; width:{prev_w:.2f}%; background:linear-gradient(90deg,#F59E0B,#FBBF24); box-shadow:0 0 22px rgba(245,158,11,.20);"></div>
+        </div>
+        <div class="mix-compact-meta">
+            <span style="color:#34D399;">Concluído: R${resultado_total:,.2f}</span>
+            <span style="color:#C084FC;">Tramitando: R${tram_total:,.2f}</span>
+            <span style="color:#FBBF24;">Previsão: R${prev_total:,.2f}</span>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
 
     render_mix_novo_migracao(df_f)
 
@@ -966,160 +984,144 @@ with tab5:
                 st.markdown(f'<div style="margin:4px 0;"><div style="display:flex;justify-content:space-between;font-size:11px;color:{TEXT_DIM};"><span>Aparelhos: <b style="color:#fff">{real_ap_qtd}</b></span><span>Meta: <b>{meta_ap_qtd}</b></span></div><div style="background:rgba(123,47,247,0.15);border-radius:6px;height:14px;margin:3px 0;"><div style="background:{color_ap};border-radius:6px;height:14px;width:{width_ap}%;min-width:2px;"></div></div><div style="text-align:right;font-size:10px;color:{color_ap};font-weight:bold;">{pct_ap:.0f}% ({real_ap_qtd}/{meta_ap_qtd})</div></div>', unsafe_allow_html=True)
             st.markdown("---")
 
-with tab6:
+with tab_tram:
     render_page_hero(
-        "Pipeline e Previsão",
-        "Separe o que já está em tramitação avançada do que ainda está em previsão inicial, acompanhando cenários de fechamento do mês com pesos transparentes.",
-        "Forecast Operacional",
-        [("Tramitando", "hero-blue"), ("Previsão", "hero-orange"), ("Cenários", "hero-green")]
+        "Tramitando",
+        "Acompanhe os pedidos em etapas mais avançadas do funil, com maior proximidade de conclusão e maior peso no forecast comercial.",
+        "Pipeline Avançado",
+        [("75% no Forecast", "hero-purple"), ("Pipeline", "hero-blue"), ("Execução", "hero-green")]
     )
 
-    resultado_total = float(df_f['VALOR_PRODUTO'].sum())
     tram_total = float(df_tram['VALOR_PRODUTO'].sum())
-    prev_total = float(df_prev['VALOR_PRODUTO'].sum()) if len(df_prev) > 0 else 0.0
     tram_regs = len(df_tram)
-    prev_regs = len(df_prev)
-
-    peso_tramitando = 0.70
-    peso_previsao = 0.35
-    forecast_conservador = resultado_total + (tram_total * peso_tramitando)
-    forecast_ponderado = resultado_total + (tram_total * peso_tramitando) + (prev_total * peso_previsao)
-    forecast_potencial = resultado_total + tram_total + prev_total
-
     tram_novo_val = df_tram[df_tram['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum() if len(df_tram) > 0 else 0
+    tram_mig_val = df_tram[df_tram['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum() if len(df_tram) > 0 else 0
+    taxa_novo_tram = (tram_novo_val / tram_total * 100) if tram_total > 0 else 0
+    valor_ponderado_tram = tram_total * 0.75
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(card("Total Tramitando", f"R${tram_total:,.2f}", f"{tram_regs} pedidos avançados", accent=True), unsafe_allow_html=True)
+    with c2:
+        st.markdown(card("Valor Ponderado", f"R${valor_ponderado_tram:,.2f}", "75% de probabilidade operacional"), unsafe_allow_html=True)
+    with c3:
+        st.markdown(card("Novo em Trâmite", f"R${tram_novo_val:,.2f}", f"{taxa_novo_tram:.1f}% do tramitando", accent=True), unsafe_allow_html=True)
+    with c4:
+        st.markdown(card("Migração em Trâmite", f"R${tram_mig_val:,.2f}", "pipeline avançado"), unsafe_allow_html=True)
+
+    render_mix_novo_migracao(df_tram)
+
+    st.markdown("#### Tramitando por Pipeline > Fase")
+    if len(df_tram) == 0:
+        st.info("Nenhum pedido em tramitação para os filtros atuais.")
+    else:
+        pipeline_data = df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+        for _, pipe_row in pipeline_data.iterrows():
+            pipe_name = pipe_row['PIPELINE']
+            pipe_valor = pipe_row['VALOR']
+            pipe_qtd = int(pipe_row['QTD'])
+            pipe_pct = (pipe_valor / tram_total * 100) if tram_total > 0 else 0
+            st.markdown(f'''<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:14px;padding:18px;margin:14px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:4px;height:28px;background:linear-gradient(180deg,{P},{P2});border-radius:4px;"></div>
+                        <div><div style="color:#fff;font-size:15px;font-weight:700;">{pipe_name}</div>
+                        <div style="color:{TEXT_DIM};font-size:11px;">{pipe_qtd} pedidos</div></div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:{P};font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
+                        <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% do tramitando</div>
+                    </div>
+                </div>
+                <div style="background:rgba(123,47,247,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
+            fases_pipe = df_tram[df_tram['PIPELINE'] == pipe_name].groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+            for _, fase_row in fases_pipe.iterrows():
+                fase_pct = (fase_row['VALOR'] / pipe_valor * 100) if pipe_valor > 0 else 0
+                bar_w = min(fase_pct, 100)
+                st.markdown(f'''<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(123,47,247,0.06);">
+                    <div style="width:6px;height:6px;background:{P2};border-radius:50%;margin-right:10px;flex-shrink:0;"></div>
+                    <div style="flex:1;color:{TEXT};font-size:12px;">{fase_row["FASE"]}</div>
+                    <div style="color:{TEXT_DIM};font-size:11px;margin-right:10px;">{int(fase_row["QTD"])}x</div>
+                    <div style="width:60px;background:rgba(123,47,247,0.15);border-radius:3px;height:6px;margin-right:10px;"><div style="background:{P2};border-radius:3px;height:6px;width:{bar_w}%;"></div></div>
+                    <div style="color:{P2};font-weight:600;font-size:12px;min-width:90px;text-align:right;">R${fase_row["VALOR"]:,.2f}</div>
+                </div>''', unsafe_allow_html=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
+        st.markdown("#### Detalhamento Tramitando")
+        cols_tram = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
+        available_tram = [c for c in cols_tram if c in df_tram.columns]
+        st.dataframe(df_tram[available_tram].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=420)
+
+with tab_prev:
+    render_page_hero(
+        "Previsão",
+        "Visualize os pedidos em etapas iniciais do funil comercial. Essa base não é tramitando avançado: ela serve para antecipar potencial futuro com peso menor no forecast.",
+        "Pipeline Inicial",
+        [("35% no Forecast", "hero-orange"), ("Pré-vendas", "hero-blue"), ("Potencial", "hero-green")]
+    )
+
+    prev_total = float(df_prev['VALOR_PRODUTO'].sum()) if len(df_prev) > 0 else 0.0
+    prev_regs = len(df_prev)
     prev_novo_val = df_prev[df_prev['TIPO_VENDA'] == 'NOVO']['VALOR_PRODUTO'].sum() if len(df_prev) > 0 else 0
-    pipeline_total_val = tram_total + prev_total
-    taxa_novo_pipeline = ((tram_novo_val + prev_novo_val) / pipeline_total_val * 100) if pipeline_total_val > 0 else 0
-    pipeline_indicator = "up" if taxa_novo_pipeline >= 50 else ("neutral" if taxa_novo_pipeline >= 30 else "down")
+    prev_mig_val = df_prev[df_prev['TIPO_VENDA'] == 'MIGRAÇÃO']['VALOR_PRODUTO'].sum() if len(df_prev) > 0 else 0
+    taxa_novo_prev = (prev_novo_val / prev_total * 100) if prev_total > 0 else 0
+    valor_ponderado_prev = prev_total * 0.35
 
-    ct1, ct2, ct3, ct4, ct5 = st.columns(5)
-    with ct1:
-        st.markdown(card("Concluído", f"R${resultado_total:,.2f}", f"{len(df_f)} registros"), unsafe_allow_html=True)
-    with ct2:
-        st.markdown(card("Tramitando", f"R${tram_total:,.2f}", f"{tram_regs} pedidos avançados", accent=True), unsafe_allow_html=True)
-    with ct3:
-        st.markdown(card("Previsão", f"R${prev_total:,.2f}", f"{prev_regs} pedidos iniciais"), unsafe_allow_html=True)
-    with ct4:
-        st.markdown(card("Forecast Ponderado", f"R${forecast_ponderado:,.2f}", "70% tram. + 35% prev.", accent=True, indicator="up" if forecast_ponderado > resultado_total else "neutral"), unsafe_allow_html=True)
-    with ct5:
-        st.markdown(card("Taxa Novo Pipeline", f"{taxa_novo_pipeline:.1f}%", "tramitação + previsão", indicator=pipeline_indicator), unsafe_allow_html=True)
+    if len(df_prev_raw) == 0:
+        st.warning("Tabela MIRAI.PUBLIC.PREVISAO não encontrada ou vazia. Rode o ETL atualizado para popular esta aba.")
 
-    resultado_w = (resultado_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
-    tram_w = (tram_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
-    prev_w = (prev_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown(card("Total Previsão", f"R${prev_total:,.2f}", f"{prev_regs} pedidos iniciais"), unsafe_allow_html=True)
+    with c2:
+        st.markdown(card("Valor Ponderado", f"R${valor_ponderado_prev:,.2f}", "35% de probabilidade operacional", accent=True), unsafe_allow_html=True)
+    with c3:
+        st.markdown(card("Novo em Previsão", f"R${prev_novo_val:,.2f}", f"{taxa_novo_prev:.1f}% da previsão", accent=True), unsafe_allow_html=True)
+    with c4:
+        st.markdown(card("Migração em Previsão", f"R${prev_mig_val:,.2f}", "pipeline inicial"), unsafe_allow_html=True)
 
-    st.markdown(f'''
-    <div class="mix-chart-shell" style="padding:16px 18px; margin: 2px 0 18px; border-radius:22px;">
-        <div class="mix-chart-head" style="margin-bottom:10px; align-items:center;">
-            <div>
-                <div class="mix-chart-title" style="font-size:15px;">Cenários de Fechamento</div>
-                <div class="mix-chart-subtitle">Tramitando representa etapas mais próximas da conclusão; Previsão representa etapas mais iniciais do funil.</div>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                <span class="mix-pill">Conservador · R${forecast_conservador:,.2f}</span>
-                <span class="mix-pill">Potencial · R${forecast_potencial:,.2f}</span>
-            </div>
-        </div>
-        <div class="mix-compact-bar">
-            <div class="mix-compact-novo" style="width:{resultado_w:.2f}%;"></div>
-            <div class="mix-compact-mig" style="width:{tram_w:.2f}%;"></div>
-            <div style="height:100%; width:{prev_w:.2f}%; background:linear-gradient(90deg,#F59E0B,#FBBF24); box-shadow:0 0 22px rgba(245,158,11,.20);"></div>
-        </div>
-        <div class="mix-compact-meta">
-            <span style="color:#34D399;">Concluído: R${resultado_total:,.2f}</span>
-            <span style="color:#C084FC;">Tramitando: R${tram_total:,.2f}</span>
-            <span style="color:#FBBF24;">Previsão: R${prev_total:,.2f}</span>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+    render_mix_novo_migracao(df_prev)
 
-    st.markdown("---")
-    sec_tram, sec_prev = st.tabs(["Tramitando avançado", "Previsão inicial"])
-
-    with sec_tram:
-        st.markdown("#### Tramitando por Pipeline > Fase")
-        if len(df_tram) == 0:
-            st.info("Nenhum pedido em tramitação para os filtros atuais.")
-        else:
-            pipeline_data = df_tram.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
-            for _, pipe_row in pipeline_data.iterrows():
-                pipe_name = pipe_row['PIPELINE']
-                pipe_valor = pipe_row['VALOR']
-                pipe_qtd = int(pipe_row['QTD'])
-                pipe_pct = (pipe_valor / tram_total * 100) if tram_total > 0 else 0
-                st.markdown(f'''<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:14px;padding:18px;margin:14px 0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <div style="width:4px;height:28px;background:linear-gradient(180deg,{P},{P2});border-radius:4px;"></div>
-                            <div><div style="color:#fff;font-size:15px;font-weight:700;">{pipe_name}</div>
-                            <div style="color:{TEXT_DIM};font-size:11px;">{pipe_qtd} pedidos</div></div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="color:{P};font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
-                            <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% do tramitando</div>
-                        </div>
+    st.markdown("#### Previsão por Pipeline > Fase")
+    if len(df_prev) == 0:
+        st.info("Nenhum pedido em previsão para os filtros atuais.")
+    else:
+        prev_pipeline_data = df_prev.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+        for _, pipe_row in prev_pipeline_data.iterrows():
+            pipe_name = pipe_row['PIPELINE']
+            pipe_valor = pipe_row['VALOR']
+            pipe_qtd = int(pipe_row['QTD'])
+            pipe_pct = (pipe_valor / prev_total * 100) if prev_total > 0 else 0
+            st.markdown(f'''<div style="background:{CARD_BG};border:1px solid rgba(245,158,11,.26);border-radius:14px;padding:18px;margin:14px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:4px;height:28px;background:linear-gradient(180deg,#F59E0B,#FBBF24);border-radius:4px;"></div>
+                        <div><div style="color:#fff;font-size:15px;font-weight:700;">{pipe_name}</div>
+                        <div style="color:{TEXT_DIM};font-size:11px;">{pipe_qtd} pedidos em etapa inicial</div></div>
                     </div>
-                    <div style="background:rgba(123,47,247,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
-                fases_pipe = df_tram[df_tram['PIPELINE'] == pipe_name].groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
-                for _, fase_row in fases_pipe.iterrows():
-                    fase_pct = (fase_row['VALOR'] / pipe_valor * 100) if pipe_valor > 0 else 0
-                    bar_w = min(fase_pct, 100)
-                    st.markdown(f'''<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(123,47,247,0.06);">
-                        <div style="width:6px;height:6px;background:{P2};border-radius:50%;margin-right:10px;flex-shrink:0;"></div>
-                        <div style="flex:1;color:{TEXT};font-size:12px;">{fase_row["FASE"]}</div>
-                        <div style="color:{TEXT_DIM};font-size:11px;margin-right:10px;">{int(fase_row["QTD"])}x</div>
-                        <div style="width:60px;background:rgba(123,47,247,0.15);border-radius:3px;height:6px;margin-right:10px;"><div style="background:{P2};border-radius:3px;height:6px;width:{bar_w}%;"></div></div>
-                        <div style="color:{P2};font-weight:600;font-size:12px;min-width:90px;text-align:right;">R${fase_row["VALOR"]:,.2f}</div>
-                    </div>''', unsafe_allow_html=True)
-                st.markdown('</div></div>', unsafe_allow_html=True)
-
-            st.markdown("#### Detalhamento Tramitando")
-            cols_tram = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
-            available_tram = [c for c in cols_tram if c in df_tram.columns]
-            st.dataframe(df_tram[available_tram].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=360)
-
-    with sec_prev:
-        st.markdown("#### Previsão por Pipeline > Fase")
-        if len(df_prev) == 0:
-            st.info("Nenhum pedido em previsão para os filtros atuais.")
-        else:
-            prev_pipeline_data = df_prev.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
-            for _, pipe_row in prev_pipeline_data.iterrows():
-                pipe_name = pipe_row['PIPELINE']
-                pipe_valor = pipe_row['VALOR']
-                pipe_qtd = int(pipe_row['QTD'])
-                pipe_pct = (pipe_valor / prev_total * 100) if prev_total > 0 else 0
-                st.markdown(f'''<div style="background:{CARD_BG};border:1px solid rgba(245,158,11,.26);border-radius:14px;padding:18px;margin:14px 0;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <div style="width:4px;height:28px;background:linear-gradient(180deg,#F59E0B,#FBBF24);border-radius:4px;"></div>
-                            <div><div style="color:#fff;font-size:15px;font-weight:700;">{pipe_name}</div>
-                            <div style="color:{TEXT_DIM};font-size:11px;">{pipe_qtd} pedidos em etapa inicial</div></div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="color:#FBBF24;font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
-                            <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% da previsão</div>
-                        </div>
+                    <div style="text-align:right;">
+                        <div style="color:#FBBF24;font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
+                        <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% da previsão</div>
                     </div>
-                    <div style="background:rgba(245,158,11,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
-                fases_pipe = df_prev[df_prev['PIPELINE'] == pipe_name].groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
-                for _, fase_row in fases_pipe.iterrows():
-                    fase_pct = (fase_row['VALOR'] / pipe_valor * 100) if pipe_valor > 0 else 0
-                    bar_w = min(fase_pct, 100)
-                    st.markdown(f'''<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(245,158,11,0.08);">
-                        <div style="width:6px;height:6px;background:#FBBF24;border-radius:50%;margin-right:10px;flex-shrink:0;"></div>
-                        <div style="flex:1;color:{TEXT};font-size:12px;">{fase_row["FASE"]}</div>
-                        <div style="color:{TEXT_DIM};font-size:11px;margin-right:10px;">{int(fase_row["QTD"])}x</div>
-                        <div style="width:60px;background:rgba(245,158,11,0.15);border-radius:3px;height:6px;margin-right:10px;"><div style="background:#FBBF24;border-radius:3px;height:6px;width:{bar_w}%;"></div></div>
-                        <div style="color:#FBBF24;font-weight:600;font-size:12px;min-width:90px;text-align:right;">R${fase_row["VALOR"]:,.2f}</div>
-                    </div>''', unsafe_allow_html=True)
-                st.markdown('</div></div>', unsafe_allow_html=True)
+                </div>
+                <div style="background:rgba(245,158,11,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
+            fases_pipe = df_prev[df_prev['PIPELINE'] == pipe_name].groupby('FASE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
+            for _, fase_row in fases_pipe.iterrows():
+                fase_pct = (fase_row['VALOR'] / pipe_valor * 100) if pipe_valor > 0 else 0
+                bar_w = min(fase_pct, 100)
+                st.markdown(f'''<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(245,158,11,0.08);">
+                    <div style="width:6px;height:6px;background:#FBBF24;border-radius:50%;margin-right:10px;flex-shrink:0;"></div>
+                    <div style="flex:1;color:{TEXT};font-size:12px;">{fase_row["FASE"]}</div>
+                    <div style="color:{TEXT_DIM};font-size:11px;margin-right:10px;">{int(fase_row["QTD"])}x</div>
+                    <div style="width:60px;background:rgba(245,158,11,0.15);border-radius:3px;height:6px;margin-right:10px;"><div style="background:#FBBF24;border-radius:3px;height:6px;width:{bar_w}%;"></div></div>
+                    <div style="color:#FBBF24;font-weight:600;font-size:12px;min-width:90px;text-align:right;">R${fase_row["VALOR"]:,.2f}</div>
+                </div>''', unsafe_allow_html=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
-            st.markdown("#### Detalhamento Previsão")
-            cols_prev = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
-            available_prev = [c for c in cols_prev if c in df_prev.columns]
-            st.dataframe(df_prev[available_prev].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=360)
-
+        st.markdown("#### Detalhamento Previsão")
+        cols_prev = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
+        available_prev = [c for c in cols_prev if c in df_prev.columns]
+        st.dataframe(df_prev[available_prev].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=420)
 with tab3:
     render_page_hero(
         "Buscar Pedido",
