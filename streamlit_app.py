@@ -454,6 +454,50 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     color: #FFFFFF;
     font-weight: 800;
 }}
+
+.about-shell {
+    background: rgba(39, 17, 73, 0.50);
+    border: 1px solid rgba(192,132,252,.22);
+    border-radius: 24px;
+    padding: 28px;
+    margin: 10px 0 30px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
+.about-section {
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(192,132,252,.12);
+}
+.about-section h3 {
+    color: #fff !important;
+    font-size: 18px !important;
+    margin-bottom: 8px !important;
+}
+.about-section p, .about-section li {
+    color: #C4B5FD !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+}
+.formula-box {
+    margin: 14px 0;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(139,92,246,.20), rgba(192,132,252,.08));
+    border: 1px solid rgba(192,132,252,.20);
+    color: #fff !important;
+    font-weight: 800;
+    letter-spacing: -.2px;
+}
+.about-footer {
+    margin-top: 20px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.08);
+    color: #C4B5FD !important;
+    line-height: 1.8;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -697,7 +741,7 @@ elif taxa_novo >= 30:
 else:
     novo_indicator = "down"
 
-tab1, tab_rank, tab2, tab5, tab_tram, tab_prev, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Ranking", "Produtos", "Metas", "Tramitando", "Previsão", "Buscar Pedido", "Dados", "Sobre"])
+tab1, tab_rank, tab2, tab5, tab_tram, tab_prev, tab3, tab4, tab7 = st.tabs(["Visão Geral", "Ranking", "Produtos", "Metas", "Em Tramitação", "Em Qualificação", "Buscar Pedido", "Dados", "Sobre"])
 
 with tab1:
     render_page_hero(
@@ -725,7 +769,7 @@ with tab1:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
 
     # Forecast executivo usando as três fontes do ETL atual:
-    # RELATORIO_HISTORICO = concluído | TRAMITANDO = pipeline avançado | PREVISAO = pipeline inicial
+    # RELATORIO_HISTORICO = concluído | TRAMITANDO = em tramitação | PREVISAO = em qualificação
     resultado_total = float(df_f['VALOR_PRODUTO'].sum())
     tram_total = float(df_tram['VALOR_PRODUTO'].sum())
     prev_total = float(df_prev['VALOR_PRODUTO'].sum()) if len(df_prev) > 0 else 0.0
@@ -739,11 +783,11 @@ with tab1:
     with f1:
         st.markdown(card("Concluído", f"R${resultado_total:,.2f}", "base realizada no mês"), unsafe_allow_html=True)
     with f2:
-        st.markdown(card("Tramitando", f"R${tram_total:,.2f}", "peso no forecast: 75%", accent=True), unsafe_allow_html=True)
+        st.markdown(card("Em Tramitação", f"R${tram_total:,.2f}", "peso no forecast: 75%", accent=True), unsafe_allow_html=True)
     with f3:
-        st.markdown(card("Previsão", f"R${prev_total:,.2f}", "peso no forecast: 35%"), unsafe_allow_html=True)
+        st.markdown(card("Em Qualificação", f"R${prev_total:,.2f}", "peso no forecast: 35%"), unsafe_allow_html=True)
     with f4:
-        st.markdown(card("Forecast Ponderado", f"R${forecast_ponderado:,.2f}", f"Potencial: R${forecast_potencial:,.2f}", accent=True, indicator="up" if forecast_ponderado > resultado_total else "neutral"), unsafe_allow_html=True)
+        st.markdown(card("Projeção do Mês", f"R${forecast_ponderado:,.2f}", f"Potencial: R${forecast_potencial:,.2f}", accent=True, indicator="up" if forecast_ponderado > resultado_total else "neutral"), unsafe_allow_html=True)
 
     resultado_w = (resultado_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
     tram_w = (tram_total / forecast_potencial * 100) if forecast_potencial > 0 else 0
@@ -752,8 +796,8 @@ with tab1:
     <div class="mix-chart-shell" style="padding:16px 18px; margin: 2px 0 18px; border-radius:22px;">
         <div class="mix-chart-head" style="margin-bottom:10px; align-items:center;">
             <div>
-                <div class="mix-chart-title" style="font-size:15px;">Forecast Comercial</div>
-                <div class="mix-chart-subtitle">Concluído + 75% do Tramitando + 35% da Previsão. A barra mostra o potencial total por estágio.</div>
+                <div class="mix-chart-title" style="font-size:15px;">Projeção Comercial</div>
+                <div class="mix-chart-subtitle">Concluído + 75% do Em Tramitação + 35% do Em Qualificação. A barra mostra o potencial total por estágio.</div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
                 <span class="mix-pill">Ponderado · R${forecast_ponderado:,.2f}</span>
@@ -767,8 +811,8 @@ with tab1:
         </div>
         <div class="mix-compact-meta">
             <span style="color:#34D399;">Concluído: R${resultado_total:,.2f}</span>
-            <span style="color:#C084FC;">Tramitando: R${tram_total:,.2f}</span>
-            <span style="color:#FBBF24;">Previsão: R${prev_total:,.2f}</span>
+            <span style="color:#C084FC;">Em Tramitação: R${tram_total:,.2f}</span>
+            <span style="color:#FBBF24;">Em Qualificação: R${prev_total:,.2f}</span>
         </div>
     </div>
     ''', unsafe_allow_html=True)
@@ -986,10 +1030,10 @@ with tab5:
 
 with tab_tram:
     render_page_hero(
-        "Tramitando",
-        "Acompanhe os pedidos em etapas mais avançadas do funil, com maior proximidade de conclusão e maior peso no forecast comercial.",
-        "Pipeline Avançado",
-        [("75% no Forecast", "hero-purple"), ("Pipeline", "hero-blue"), ("Execução", "hero-green")]
+        "Em Tramitação",
+        "Acompanhe os pedidos em andamento, com maior proximidade de conclusão e maior peso na projeção comercial.",
+        "Operação em Andamento",
+        [("75% na Projeção", "hero-purple"), ("Pipeline", "hero-blue"), ("Execução", "hero-green")]
     )
 
     tram_total = float(df_tram['VALOR_PRODUTO'].sum())
@@ -1001,17 +1045,17 @@ with tab_tram:
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(card("Total Tramitando", f"R${tram_total:,.2f}", f"{tram_regs} pedidos avançados", accent=True), unsafe_allow_html=True)
+        st.markdown(card("Total em Tramitação", f"R${tram_total:,.2f}", f"{tram_regs} pedidos em tramitação", accent=True), unsafe_allow_html=True)
     with c2:
         st.markdown(card("Valor Ponderado", f"R${valor_ponderado_tram:,.2f}", "75% de probabilidade operacional"), unsafe_allow_html=True)
     with c3:
-        st.markdown(card("Novo em Trâmite", f"R${tram_novo_val:,.2f}", f"{taxa_novo_tram:.1f}% do tramitando", accent=True), unsafe_allow_html=True)
+        st.markdown(card("Novo em Tramitação", f"R${tram_novo_val:,.2f}", f"{taxa_novo_tram:.1f}% do tramitando", accent=True), unsafe_allow_html=True)
     with c4:
-        st.markdown(card("Migração em Trâmite", f"R${tram_mig_val:,.2f}", "pipeline avançado"), unsafe_allow_html=True)
+        st.markdown(card("Migração em Tramitação", f"R${tram_mig_val:,.2f}", "em tramitação"), unsafe_allow_html=True)
 
     render_mix_novo_migracao(df_tram)
 
-    st.markdown("#### Tramitando por Pipeline > Fase")
+    st.markdown("#### Em Tramitação por Pipeline > Fase")
     if len(df_tram) == 0:
         st.info("Nenhum pedido em tramitação para os filtros atuais.")
     else:
@@ -1047,17 +1091,17 @@ with tab_tram:
                 </div>''', unsafe_allow_html=True)
             st.markdown('</div></div>', unsafe_allow_html=True)
 
-        st.markdown("#### Detalhamento Tramitando")
+        st.markdown("#### Detalhamento Em Tramitação")
         cols_tram = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
         available_tram = [c for c in cols_tram if c in df_tram.columns]
         st.dataframe(df_tram[available_tram].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=420)
 
 with tab_prev:
     render_page_hero(
-        "Previsão",
-        "Visualize os pedidos em etapas iniciais do funil comercial. Essa base não é tramitando avançado: ela serve para antecipar potencial futuro com peso menor no forecast.",
+        "Em Qualificação",
+        "Visualize os pedidos em etapas iniciais do funil comercial. Essa base representa oportunidades em qualificação e antecipa potencial futuro com peso menor na projeção.",
         "Pipeline Inicial",
-        [("35% no Forecast", "hero-orange"), ("Pré-vendas", "hero-blue"), ("Potencial", "hero-green")]
+        [("35% na Projeção", "hero-orange"), ("Pré-vendas", "hero-blue"), ("Potencial", "hero-green")]
     )
 
     prev_total = float(df_prev['VALOR_PRODUTO'].sum()) if len(df_prev) > 0 else 0.0
@@ -1072,19 +1116,19 @@ with tab_prev:
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(card("Total Previsão", f"R${prev_total:,.2f}", f"{prev_regs} pedidos iniciais"), unsafe_allow_html=True)
+        st.markdown(card("Total em Qualificação", f"R${prev_total:,.2f}", f"{prev_regs} pedidos iniciais"), unsafe_allow_html=True)
     with c2:
         st.markdown(card("Valor Ponderado", f"R${valor_ponderado_prev:,.2f}", "35% de probabilidade operacional", accent=True), unsafe_allow_html=True)
     with c3:
-        st.markdown(card("Novo em Previsão", f"R${prev_novo_val:,.2f}", f"{taxa_novo_prev:.1f}% da previsão", accent=True), unsafe_allow_html=True)
+        st.markdown(card("Novo em Qualificação", f"R${prev_novo_val:,.2f}", f"{taxa_novo_prev:.1f}% da qualificação", accent=True), unsafe_allow_html=True)
     with c4:
-        st.markdown(card("Migração em Previsão", f"R${prev_mig_val:,.2f}", "pipeline inicial"), unsafe_allow_html=True)
+        st.markdown(card("Migração em Qualificação", f"R${prev_mig_val:,.2f}", "em qualificação"), unsafe_allow_html=True)
 
     render_mix_novo_migracao(df_prev)
 
-    st.markdown("#### Previsão por Pipeline > Fase")
+    st.markdown("#### Em Qualificação por Pipeline > Fase")
     if len(df_prev) == 0:
-        st.info("Nenhum pedido em previsão para os filtros atuais.")
+        st.info("Nenhum pedido em qualificação para os filtros atuais.")
     else:
         prev_pipeline_data = df_prev.groupby('PIPELINE').agg(QTD=('VALOR_PRODUTO', 'count'), VALOR=('VALOR_PRODUTO', 'sum')).sort_values('VALOR', ascending=False).reset_index()
         for _, pipe_row in prev_pipeline_data.iterrows():
@@ -1101,7 +1145,7 @@ with tab_prev:
                     </div>
                     <div style="text-align:right;">
                         <div style="color:#FBBF24;font-size:18px;font-weight:700;">R${pipe_valor:,.2f}</div>
-                        <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% da previsão</div>
+                        <div style="color:{TEXT_DIM};font-size:10px;">{pipe_pct:.1f}% da qualificação</div>
                     </div>
                 </div>
                 <div style="background:rgba(245,158,11,0.08);border-radius:8px;padding:10px 14px;">''', unsafe_allow_html=True)
@@ -1118,34 +1162,34 @@ with tab_prev:
                 </div>''', unsafe_allow_html=True)
             st.markdown('</div></div>', unsafe_allow_html=True)
 
-        st.markdown("#### Detalhamento Previsão")
+        st.markdown("#### Detalhamento Em Qualificação")
         cols_prev = ['NOME_NEGOCIO', 'RESPONSAVEL', 'PRODUTO', 'TORRE', 'TIPO_VENDA', 'VALOR_PRODUTO', 'PIPELINE', 'FASE']
         available_prev = [c for c in cols_prev if c in df_prev.columns]
         st.dataframe(df_prev[available_prev].sort_values('VALOR_PRODUTO', ascending=False), use_container_width=True, height=420)
 with tab3:
     render_page_hero(
         "Buscar Pedido",
-        "Localize rapidamente pedidos concluídos ou em tramitação por cliente, responsável e origem da informação.",
+        "Localize rapidamente pedidos concluídos, em tramitação ou em qualificação por cliente, responsável e origem da informação.",
         "Consulta Operacional",
-        [("Busca", "hero-blue"), ("Concluídos", "hero-green"), ("Tramitando", "hero-orange")]
+        [("Busca", "hero-blue"), ("Concluídos", "hero-green"), ("Em Tramitação", "hero-orange")]
     )
     col_b1, col_b2, col_b3 = st.columns(3)
     with col_b1: busca_nome = st.text_input("Buscar por Nome / Cliente")
     with col_b2: busca_resp = st.selectbox("Responsável", ["Todos"] + sorted(df['RESPONSAVEL'].unique().tolist()), key="busca_resp")
-    with col_b3: busca_fonte = st.selectbox("Fonte", ["Todos", "Concluídos", "Tramitando", "Previsão"], key="busca_fonte")
+    with col_b3: busca_fonte = st.selectbox("Fonte", ["Todos", "Concluídos", "Em Tramitação", "Em Qualificação"], key="busca_fonte")
     if busca_fonte == "Concluídos":
         df_busca = df_f.copy()
-    elif busca_fonte == "Tramitando":
+    elif busca_fonte == "Em Tramitação":
         df_busca = df_tram.copy()
-    elif busca_fonte == "Previsão":
+    elif busca_fonte == "Em Qualificação":
         df_busca = df_prev.copy()
     else:
         df_busca_result = df_f.copy()
         df_busca_result['_FONTE'] = 'Concluído'
         df_busca_tram = df_tram.copy()
-        df_busca_tram['_FONTE'] = 'Tramitando'
+        df_busca_tram['_FONTE'] = 'Em Tramitação'
         df_busca_prev = df_prev.copy()
-        df_busca_prev['_FONTE'] = 'Previsão'
+        df_busca_prev['_FONTE'] = 'Em Qualificação'
         df_busca = pd.concat([df_busca_result, df_busca_tram, df_busca_prev], ignore_index=True)
     if busca_nome: df_busca = df_busca[df_busca['NOME_NEGOCIO'].str.contains(busca_nome, case=False, na=False)]
     if busca_resp != "Todos": df_busca = df_busca[df_busca['RESPONSAVEL'] == busca_resp]
@@ -1153,7 +1197,7 @@ with tab3:
     for _, row in df_busca.head(50).iterrows():
         fonte_label = row.get('_FONTE', '')
         fonte_badge = f'<span style="background:rgba(123,47,247,0.2);color:{P2};font-size:9px;padding:2px 6px;border-radius:4px;margin-left:8px;">{fonte_label}</span>' if fonte_label else ''
-        fase_info = f' | {row.get("FASE", "")}' if 'FASE' in row.index and row.get('_FONTE', '') in ['Tramitando', 'Previsão'] else ''
+        fase_info = f' | {row.get("FASE", "")}' if 'FASE' in row.index and row.get('_FONTE', '') in ['Em Tramitação', 'Em Qualificação'] else ''
         st.markdown(f'<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:12px;padding:14px;margin:8px 0;border-left:3px solid {P};transition:all 0.2s;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="color:#fff;font-size:13px;font-weight:600;">{row.get("NOME_NEGOCIO","")}{fonte_badge}</div><div style="color:{TEXT_DIM};font-size:11px;margin-top:4px;">{row.get("RESPONSAVEL","")} | {row.get("TORRE","")} | {row.get("TIPO_VENDA","")}{fase_info}</div></div><div style="text-align:right;"><div style="color:{P};font-size:20px;font-weight:700;">R${row.get("VALOR_PRODUTO",0):,.2f}</div></div></div></div>', unsafe_allow_html=True)
 
 with tab4:
@@ -1176,43 +1220,80 @@ with tab7:
         [("Regras", "hero-purple"), ("Critérios", "hero-blue"), ("Indicadores", "hero-green")]
     )
     st.markdown(f"""
-<div style="background:{CARD_BG};border:1px solid {CARD_BORDER};border-radius:16px;padding:28px;margin:10px 0;">
+<div class="about-shell">
 
-<h3 style="color:#fff !important;">O que são os Resultados?</h3>
-<p>Pedidos <b>concluídos</b> no mês:</p>
-<ul style="color:{TEXT};">
-<li><b>Logística</b>: todas as fases (pedido vendido, em entrega/ativação)</li>
-<li><b>Fixa Básica / Avançados / Digitais(TI)</b>: apenas fase "Pedido Concluído"</li>
-</ul>
-<p><b>Não contam</b>: DOWN, TT, Troca Pura, cancelados.</p>
+    <div class="about-section">
+        <h3>1. O que é considerado Concluído?</h3>
+        <p>Representa os pedidos já realizados no mês, depois das regras de tratamento do processo comercial. É a base consolidada usada para medir o resultado efetivo.</p>
+        <ul>
+            <li><b>Logística:</b> considera pedidos vendidos, em entrega ou em ativação.</li>
+            <li><b>Fixa Básica, Avançados e Digitais/TI:</b> considera apenas pedidos na fase <b>Pedido Concluído</b>.</li>
+            <li><b>Não entram:</b> cancelados, perdas comerciais, reprovações de crédito, Down, TT e Troca Pura.</li>
+        </ul>
+    </div>
 
-<hr style="border-color:rgba(123,47,247,0.2);">
+    <div class="about-section">
+        <h3>2. O que é Em Tramitação?</h3>
+        <p>São pedidos em andamento com maior maturidade operacional. Eles ainda não estão concluídos, mas já avançaram o suficiente no processo para receber peso maior na projeção do mês.</p>
+        <p>No dashboard, essa visão vem da tabela <b>TRAMITANDO</b> e é exibida como <b>Em Tramitação</b> para evitar confusão com nomes de pipelines comerciais.</p>
+    </div>
 
-<h3 style="color:#fff !important;">O que está Tramitando?</h3>
-<p>Pedidos em etapas mais avançadas do funil. No ETL: Fixa Básica de Conferir Instalação em diante, Avançados depois de Liberado pra Input, Digitais(TI) depois de Aceite e Inserção.</p>
-<h3 style="color:#fff !important;">O que é Previsão?</h3>
-<p>Pedidos em etapas mais iniciais: Quality, Pré vendas, Fixa Básica antes de Conferir Instalação, Avançados até Liberado pra Input e Digitais(TI) até Aceite.</p>
-<p><b>Excluídos</b>: Cancelado, Perda de Vendas, Crédito Reprovado/Negado, Cancelamento Comercial.</p>
+    <div class="about-section">
+        <h3>3. O que é Em Qualificação?</h3>
+        <p>São pedidos em etapas iniciais de validação, análise, pré-vendas, quality ou fases preliminares. Eles indicam potencial futuro, mas possuem maior incerteza de conclusão.</p>
+        <p>No dashboard, essa visão vem da tabela <b>PREVISAO</b> e é exibida como <b>Em Qualificação</b>.</p>
+    </div>
 
-<hr style="border-color:rgba(123,47,247,0.2);">
+    <div class="about-section">
+        <h3>4. Como calculamos a Projeção do Mês?</h3>
+        <p>A projeção combina o resultado já concluído com uma ponderação dos pedidos ainda em andamento:</p>
+        <div class="formula-box">
+            Projeção do Mês = Concluído + 75% de Em Tramitação + 35% de Em Qualificação
+        </div>
+        <ul>
+            <li><b>75% para Em Tramitação:</b> maior maturidade e maior chance de conclusão.</li>
+            <li><b>35% para Em Qualificação:</b> maior potencial, porém com mais incerteza.</li>
+        </ul>
+    </div>
 
-<h3 style="color:#fff !important;">Taxa de Novo</h3>
-<p>Percentual do valor total que veio de vendas <b>NOVO</b> (Alta, Portabilidade). Indicador verde = acima de 50%, amarelo = 30-50%, vermelho = abaixo de 30%.</p>
+    <div class="about-section">
+        <h3>5. O que é Taxa de Novo?</h3>
+        <p>Mostra quanto do valor total vem de vendas classificadas como <b>NOVO</b>.</p>
+        <div class="formula-box">
+            Taxa de Novo = Valor de vendas NOVO ÷ Valor total vendido
+        </div>
+    </div>
 
-<hr style="border-color:rgba(123,47,247,0.2);">
+    <div class="about-section">
+        <h3>6. Como funciona o Ranking?</h3>
+        <p>O ranking é calculado pelo valor vendido após a aplicação dos filtros selecionados. Ao alterar mês, snapshot, departamento, torre ou tipo de venda, o ranking é recalculado automaticamente.</p>
+        <p>A visão principal é por <b>Departamento</b> e, dentro de cada departamento, por <b>Responsável</b>.</p>
+    </div>
 
-<h3 style="color:#fff !important;">Estimativa do Mês</h3>
-<p><b>Concluído + 70% Tramitando = Estimativa Realista</b></p>
+    <div class="about-section">
+        <h3>7. Como contamos Linhas?</h3>
+        <p>A contagem de linhas considera o maior valor de linhas por pedido, com mínimo de 1 linha por pedido quando necessário. Nos cards de Novo e Migração, a quantidade é separada entre <b>Móvel</b> e <b>Fixa</b> quando essas torres existem nos dados filtrados.</p>
+    </div>
 
-<hr style="border-color:rgba(123,47,247,0.2);">
+    <div class="about-section">
+        <h3>8. Como interpretar os filtros?</h3>
+        <p>Todos os filtros no topo do dashboard são globais. Eles impactam Visão Geral, Ranking, Produtos, Metas, Em Tramitação, Em Qualificação, Busca e Dados.</p>
+        <ul>
+            <li><b>Snapshot:</b> data de carga analisada.</li>
+            <li><b>Mês:</b> período comercial de conclusão.</li>
+            <li><b>Departamento:</b> agrupamento gerencial do responsável.</li>
+            <li><b>Torre:</b> classificação comercial, como Móvel, Fixa PJ ou TI.</li>
+            <li><b>Tipo de Venda:</b> Novo ou Migração.</li>
+        </ul>
+    </div>
 
-<h3 style="color:#fff !important;">Classificação</h3>
-<ul style="color:{TEXT};">
-<li><b>Torre</b>: Smart Empresas/Ilimitado = Móvel</li>
-<li><b>Tipo Venda</b>: produto "| NOVO" ou Alta/Portabilidade = NOVO</li>
-<li><b>Linhas</b>: MAX por pedido, mínimo 1</li>
-</ul>
+    <div class="about-footer">
+        <b>Processamento:</b> ETL Mirai<br>
+        <b>Visualização:</b> Dashboard Comercial Mirai<br>
+        <b>Objetivo:</b> apoiar gestão comercial, acompanhamento de resultado, análise de funil e projeção mensal.
+    </div>
 
 </div>
 """, unsafe_allow_html=True)
+
 
