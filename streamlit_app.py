@@ -455,7 +455,7 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     font-weight: 800;
 }}
 
-.about-shell {
+.about-shell {{
     background: rgba(39, 17, 73, 0.50);
     border: 1px solid rgba(192,132,252,.22);
     border-radius: 24px;
@@ -463,22 +463,22 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     margin: 10px 0 30px;
     backdrop-filter: blur(18px);
     box-shadow: 0 18px 50px rgba(0,0,0,.22);
-}
-.about-section {
+}}
+.about-section {{
     padding: 18px 0;
     border-bottom: 1px solid rgba(192,132,252,.12);
-}
-.about-section h3 {
+}}
+.about-section h3 {{
     color: #fff !important;
     font-size: 18px !important;
     margin-bottom: 8px !important;
-}
-.about-section p, .about-section li {
+}}
+.about-section p, .about-section li {{
     color: #C4B5FD !important;
     font-size: 14px !important;
     line-height: 1.7 !important;
-}
-.formula-box {
+}}
+.formula-box {{
     margin: 14px 0;
     padding: 16px 18px;
     border-radius: 16px;
@@ -487,8 +487,8 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     color: #fff !important;
     font-weight: 800;
     letter-spacing: -.2px;
-}
-.about-footer {
+}}
+.about-footer {{
     margin-top: 20px;
     padding: 18px;
     border-radius: 18px;
@@ -496,7 +496,7 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     border: 1px solid rgba(255,255,255,.08);
     color: #C4B5FD !important;
     line-height: 1.8;
-}
+}}
 
 </style>
 """, unsafe_allow_html=True)
@@ -1295,5 +1295,4 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
-
 
