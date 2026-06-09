@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import snowflake.connector
+import html
 
 st.set_page_config(page_title="Dashboard de Vendas - Mirai", layout="wide", initial_sidebar_state="collapsed")
 
@@ -455,6 +456,74 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     font-weight: 800;
 }}
 
+
+.card-help-tip {{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 2px;
+    border-radius: 999px;
+    cursor: help;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 900;
+    background: rgba(192,132,252,.18);
+    border: 1px solid rgba(192,132,252,.34);
+    box-shadow: 0 0 18px rgba(192,132,252,.18);
+}}
+.card-help-tip:hover {{
+    background: rgba(192,132,252,.30);
+    border-color: rgba(216,180,254,.62);
+}}
+.card-help-tip:hover::after {{
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 13px);
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: max-content;
+    max-width: 460px;
+    min-width: 260px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(10,5,24,.98), rgba(34,14,65,.96));
+    border: 1px solid rgba(192,132,252,.34);
+    box-shadow: 0 20px 58px rgba(0,0,0,.42), 0 0 28px rgba(139,92,246,.22);
+    color: #F8F4FF;
+    font-size: 11px;
+    line-height: 1.55;
+    font-weight: 650;
+    letter-spacing: .1px;
+    white-space: pre-line;
+    pointer-events: none;
+    text-align: left;
+}}
+.card-help-tip:hover::before {{
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 5px);
+    transform: translateX(-50%) rotate(45deg);
+    z-index: 9998;
+    width: 12px;
+    height: 12px;
+    background: rgba(34,14,65,.96);
+    border-right: 1px solid rgba(192,132,252,.34);
+    border-bottom: 1px solid rgba(192,132,252,.34);
+    pointer-events: none;
+}}
+@media (max-width: 900px) {{
+    .card-help-tip:hover::after {{
+        left: 0;
+        transform: translateX(-18px);
+        max-width: 320px;
+    }}
+}}
+
 .about-shell {{
     background: rgba(39, 17, 73, 0.50);
     border: 1px solid rgba(192,132,252,.22);
@@ -575,7 +644,7 @@ df_prev_raw = load_previsao()
 df_produtos = load_produtos()
 has_metas = len(df_metas) > 0
 
-def card(title, value, sub="", accent=False, indicator=None):
+def card(title, value, sub="", accent=False, indicator=None, tooltip=None):
     cls = "metric-card-accent" if accent else "metric-card"
     ind_html = ""
     if indicator == "up":
@@ -584,7 +653,13 @@ def card(title, value, sub="", accent=False, indicator=None):
         ind_html = '<div class="card-indicator indicator-down">&#9660; caindo</div>'
     elif indicator == "neutral":
         ind_html = '<div class="card-indicator indicator-neutral">&#9654; estável</div>'
-    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}</div>{ind_html}</div>'
+
+    tip_html = ""
+    if tooltip:
+        tooltip_attr = html.escape(str(tooltip), quote=True).replace("\n", "&#10;")
+        tip_html = f'<span class="card-help-tip" data-tooltip="{tooltip_attr}">?</span>'
+
+    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}{tip_html}</div>{ind_html}</div>'
 
 def count_linhas(dataframe):
     if len(dataframe) == 0:
@@ -596,6 +671,52 @@ def linhas_por_torre_text(dataframe):
     movel = count_linhas(dataframe[dataframe['TORRE'] == 'Móvel']) if 'TORRE' in dataframe.columns else 0
     fixa = count_linhas(dataframe[dataframe['TORRE'] == 'Fixa PJ']) if 'TORRE' in dataframe.columns else 0
     return f'<span class="line-breakdown"><span>Móvel: <b>{movel}</b></span><span>Fixa: <b>{fixa}</b></span></span>'
+
+
+def linhas_tooltip_text(dataframe, titulo="Linhas consideradas"):
+    """Monta o texto exibido no tooltip dos cards de linhas."""
+    if dataframe is None or len(dataframe) == 0:
+        return f"{titulo}\nNenhuma linha encontrada no filtro atual."
+
+    partes = [titulo, ""]
+
+    if 'TORRE' in dataframe.columns:
+        torres_ordem = ['Móvel', 'Fixa PJ', 'TI']
+        torres_existentes = [t for t in torres_ordem if t in set(dataframe['TORRE'].dropna().astype(str))]
+        torres_extra = sorted([t for t in dataframe['TORRE'].dropna().astype(str).unique() if t not in torres_ordem])
+        for torre in torres_existentes + torres_extra:
+            qtd = count_linhas(dataframe[dataframe['TORRE'].astype(str) == torre])
+            partes.append(f"{torre}: {qtd} linhas")
+
+    if {'NOME_NEGOCIO', 'LINHAS'}.issubset(dataframe.columns):
+        agg_dict = {'LINHAS': 'max'}
+        if 'RESPONSAVEL' in dataframe.columns:
+            agg_dict['RESPONSAVEL'] = 'first'
+        if 'TORRE' in dataframe.columns:
+            agg_dict['TORRE'] = 'first'
+
+        detalhes = (
+            dataframe.groupby('NOME_NEGOCIO', dropna=False)
+            .agg(agg_dict)
+            .reset_index()
+            .sort_values('LINHAS', ascending=False)
+            .head(8)
+        )
+
+        if len(detalhes) > 0:
+            partes.extend(["", "Principais pedidos:"])
+            for _, row in detalhes.iterrows():
+                nome = str(row.get('NOME_NEGOCIO', 'Pedido sem nome'))[:44]
+                resp = str(row.get('RESPONSAVEL', ''))[:22]
+                torre = str(row.get('TORRE', ''))[:16]
+                linhas = int(max(float(row.get('LINHAS', 0) or 0), 1))
+                complemento = " | ".join([x for x in [resp, torre] if x and x != 'nan'])
+                if complemento:
+                    partes.append(f"• {nome} — {complemento}: {linhas}")
+                else:
+                    partes.append(f"• {nome}: {linhas}")
+
+    return "\n".join(partes)
 
 
 
@@ -756,15 +877,15 @@ with tab1:
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas"), unsafe_allow_html=True)
+        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas", tooltip=linhas_tooltip_text(df_f, "Total de linhas consideradas")), unsafe_allow_html=True)
     with c2:
         df_mig_card = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']
         mig_sub = f"{count_linhas(df_mig_card)} linhas · {linhas_por_torre_text(df_mig_card)}"
-        st.markdown(card("Migração", f"R${mig:,.2f}", mig_sub), unsafe_allow_html=True)
+        st.markdown(card("Migração", f"R${mig:,.2f}", mig_sub, tooltip=linhas_tooltip_text(df_mig_card, "Linhas de Migração")), unsafe_allow_html=True)
     with c3:
         df_novo_card = df_f[df_f['TIPO_VENDA'] == 'NOVO']
         novo_sub = f"{count_linhas(df_novo_card)} linhas · {linhas_por_torre_text(df_novo_card)}"
-        st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True), unsafe_allow_html=True)
+        st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True, tooltip=linhas_tooltip_text(df_novo_card, "Linhas de Novo")), unsafe_allow_html=True)
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
 
@@ -1295,4 +1416,3 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
-
