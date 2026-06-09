@@ -568,26 +568,26 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
 }}
 
 
-.detail-panel-head {
+.detail-panel-head {{
     margin: 22px 0 12px;
     padding: 18px 20px;
     border-radius: 22px;
     background: linear-gradient(135deg, rgba(39, 17, 73, 0.56), rgba(76, 29, 149, 0.28));
     border: 1px solid rgba(192, 132, 252, 0.18);
     box-shadow: 0 16px 42px rgba(0,0,0,.18);
-}
-.detail-panel-title {
+}}
+.detail-panel-title {{
     color: #fff;
     font-size: 17px;
     font-weight: 800;
     letter-spacing: -.3px;
-}
-.detail-panel-subtitle {
+}}
+.detail-panel-subtitle {{
     color: #C4B5FD;
     font-size: 13px;
     line-height: 1.55;
     margin-top: 4px;
-}
+}}
 
 </style>
 """, unsafe_allow_html=True)
