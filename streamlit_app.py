@@ -567,6 +567,28 @@ div[data-testid="stVerticalBlock"]:has(.filter-anchor):hover {{
     line-height: 1.8;
 }}
 
+
+.detail-panel-head {
+    margin: 22px 0 12px;
+    padding: 18px 20px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(39, 17, 73, 0.56), rgba(76, 29, 149, 0.28));
+    border: 1px solid rgba(192, 132, 252, 0.18);
+    box-shadow: 0 16px 42px rgba(0,0,0,.18);
+}
+.detail-panel-title {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -.3px;
+}
+.detail-panel-subtitle {
+    color: #C4B5FD;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-top: 4px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -644,7 +666,7 @@ df_prev_raw = load_previsao()
 df_produtos = load_produtos()
 has_metas = len(df_metas) > 0
 
-def card(title, value, sub="", accent=False, indicator=None, tooltip=None):
+def card(title, value, sub="", accent=False, indicator=None):
     cls = "metric-card-accent" if accent else "metric-card"
     ind_html = ""
     if indicator == "up":
@@ -654,12 +676,7 @@ def card(title, value, sub="", accent=False, indicator=None, tooltip=None):
     elif indicator == "neutral":
         ind_html = '<div class="card-indicator indicator-neutral">&#9654; estável</div>'
 
-    tip_html = ""
-    if tooltip:
-        tooltip_attr = html.escape(str(tooltip), quote=True).replace("\n", "&#10;")
-        tip_html = f'<span class="card-help-tip" data-tooltip="{tooltip_attr}">?</span>'
-
-    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}{tip_html}</div>{ind_html}</div>'
+    return f'<div class="{cls}"><div class="card-title">{title}</div><div class="card-value">{value}</div><div class="card-sub">{sub}</div>{ind_html}</div>'
 
 def count_linhas(dataframe):
     if len(dataframe) == 0:
@@ -672,51 +689,55 @@ def linhas_por_torre_text(dataframe):
     fixa = count_linhas(dataframe[dataframe['TORRE'] == 'Fixa PJ']) if 'TORRE' in dataframe.columns else 0
     return f'<span class="line-breakdown"><span>Móvel: <b>{movel}</b></span><span>Fixa: <b>{fixa}</b></span></span>'
 
+def pedidos_linhas_table(dataframe):
+    """Monta a tabela de pedidos que compõem a contagem de linhas dos cards."""
+    if dataframe is None or len(dataframe) == 0 or 'NOME_NEGOCIO' not in dataframe.columns:
+        return pd.DataFrame()
 
-def linhas_tooltip_text(dataframe, titulo="Linhas consideradas"):
-    """Monta o texto exibido no tooltip dos cards de linhas."""
-    if dataframe is None or len(dataframe) == 0:
-        return f"{titulo}\nNenhuma linha encontrada no filtro atual."
+    work = dataframe.copy()
+    work['LINHAS'] = pd.to_numeric(work.get('LINHAS', 0), errors='coerce').fillna(0).clip(lower=1)
+    work['VALOR_PRODUTO'] = pd.to_numeric(work.get('VALOR_PRODUTO', 0), errors='coerce').fillna(0)
 
-    partes = [titulo, ""]
+    agg = {'LINHAS': 'max', 'VALOR_PRODUTO': 'sum'}
+    first_cols = ['RESPONSAVEL', 'DEPARTAMENTO', 'TORRE', 'TIPO_VENDA', 'PIPELINE', 'FASE', 'CONCLUSAO_VIVO']
+    for col in first_cols:
+        if col in work.columns:
+            agg[col] = 'first'
 
-    if 'TORRE' in dataframe.columns:
-        torres_ordem = ['Móvel', 'Fixa PJ', 'TI']
-        torres_existentes = [t for t in torres_ordem if t in set(dataframe['TORRE'].dropna().astype(str))]
-        torres_extra = sorted([t for t in dataframe['TORRE'].dropna().astype(str).unique() if t not in torres_ordem])
-        for torre in torres_existentes + torres_extra:
-            qtd = count_linhas(dataframe[dataframe['TORRE'].astype(str) == torre])
-            partes.append(f"{torre}: {qtd} linhas")
+    detalhes = work.groupby('NOME_NEGOCIO', dropna=False).agg(agg).reset_index()
+    detalhes['LINHAS_CONSIDERADAS'] = pd.to_numeric(detalhes['LINHAS'], errors='coerce').fillna(0).clip(lower=1).astype(int)
+    detalhes['VALOR_TOTAL'] = pd.to_numeric(detalhes['VALOR_PRODUTO'], errors='coerce').fillna(0)
 
-    if {'NOME_NEGOCIO', 'LINHAS'}.issubset(dataframe.columns):
-        agg_dict = {'LINHAS': 'max'}
-        if 'RESPONSAVEL' in dataframe.columns:
-            agg_dict['RESPONSAVEL'] = 'first'
-        if 'TORRE' in dataframe.columns:
-            agg_dict['TORRE'] = 'first'
-
-        detalhes = (
-            dataframe.groupby('NOME_NEGOCIO', dropna=False)
-            .agg(agg_dict)
-            .reset_index()
-            .sort_values('LINHAS', ascending=False)
-            .head(8)
+    if 'PRODUTO' in work.columns:
+        produtos = (
+            work.groupby('NOME_NEGOCIO')['PRODUTO']
+            .apply(lambda x: ' | '.join(pd.Series(x.dropna().astype(str).unique()).head(3)))
+            .reset_index(name='PRODUTOS')
         )
+        detalhes = detalhes.merge(produtos, on='NOME_NEGOCIO', how='left')
 
-        if len(detalhes) > 0:
-            partes.extend(["", "Principais pedidos:"])
-            for _, row in detalhes.iterrows():
-                nome = str(row.get('NOME_NEGOCIO', 'Pedido sem nome'))[:44]
-                resp = str(row.get('RESPONSAVEL', ''))[:22]
-                torre = str(row.get('TORRE', ''))[:16]
-                linhas = int(max(float(row.get('LINHAS', 0) or 0), 1))
-                complemento = " | ".join([x for x in [resp, torre] if x and x != 'nan'])
-                if complemento:
-                    partes.append(f"• {nome} — {complemento}: {linhas}")
-                else:
-                    partes.append(f"• {nome}: {linhas}")
+    rename_map = {
+        'NOME_NEGOCIO': 'Pedido',
+        'RESPONSAVEL': 'Responsável',
+        'DEPARTAMENTO': 'Departamento',
+        'TORRE': 'Torre',
+        'TIPO_VENDA': 'Tipo de Venda',
+        'PIPELINE': 'Pipeline',
+        'FASE': 'Fase',
+        'CONCLUSAO_VIVO': 'Conclusão',
+        'PRODUTOS': 'Produtos',
+        'LINHAS_CONSIDERADAS': 'Linhas Consideradas',
+        'VALOR_TOTAL': 'Valor Total',
+    }
+    detalhes = detalhes.rename(columns=rename_map)
 
-    return "\n".join(partes)
+    cols = [
+        'Pedido', 'Responsável', 'Departamento', 'Torre', 'Tipo de Venda',
+        'Linhas Consideradas', 'Valor Total', 'Produtos', 'Pipeline', 'Fase', 'Conclusão'
+    ]
+    cols = [c for c in cols if c in detalhes.columns]
+    return detalhes[cols].sort_values(['Linhas Consideradas', 'Valor Total'], ascending=[False, False])
+
 
 
 
@@ -877,17 +898,59 @@ with tab1:
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas", tooltip=linhas_tooltip_text(df_f, "Total de linhas consideradas")), unsafe_allow_html=True)
+        st.markdown(card("Total Geral", f"R${total:,.2f}", f"{count_linhas(df_f)} linhas"), unsafe_allow_html=True)
     with c2:
         df_mig_card = df_f[df_f['TIPO_VENDA'] == 'MIGRAÇÃO']
         mig_sub = f"{count_linhas(df_mig_card)} linhas · {linhas_por_torre_text(df_mig_card)}"
-        st.markdown(card("Migração", f"R${mig:,.2f}", mig_sub, tooltip=linhas_tooltip_text(df_mig_card, "Linhas de Migração")), unsafe_allow_html=True)
+        st.markdown(card("Migração", f"R${mig:,.2f}", mig_sub), unsafe_allow_html=True)
     with c3:
         df_novo_card = df_f[df_f['TIPO_VENDA'] == 'NOVO']
         novo_sub = f"{count_linhas(df_novo_card)} linhas · {linhas_por_torre_text(df_novo_card)}"
-        st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True, tooltip=linhas_tooltip_text(df_novo_card, "Linhas de Novo")), unsafe_allow_html=True)
+        st.markdown(card("Novo", f"R${novo:,.2f}", novo_sub, accent=True), unsafe_allow_html=True)
     with c4:
         st.markdown(card("Taxa de Novo", f"{taxa_novo:.1f}%", f"Meta: >50%", accent=True, indicator=novo_indicator), unsafe_allow_html=True)
+
+    st.markdown('''
+    <div class="detail-panel-head">
+        <div>
+            <div class="detail-panel-title">Detalhamento dos cards</div>
+            <div class="detail-panel-subtitle">Selecione um indicador para ver os pedidos que compõem a contagem de linhas exibida nos cards.</div>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    detalhe_opcoes = {
+        "Total Geral": df_f,
+        "Novo": df_novo_card,
+        "Migração": df_mig_card,
+        "Novo · Móvel": df_novo_card[df_novo_card['TORRE'] == 'Móvel'] if 'TORRE' in df_novo_card.columns else df_novo_card.iloc[0:0],
+        "Novo · Fixa": df_novo_card[df_novo_card['TORRE'] == 'Fixa PJ'] if 'TORRE' in df_novo_card.columns else df_novo_card.iloc[0:0],
+        "Migração · Móvel": df_mig_card[df_mig_card['TORRE'] == 'Móvel'] if 'TORRE' in df_mig_card.columns else df_mig_card.iloc[0:0],
+        "Migração · Fixa": df_mig_card[df_mig_card['TORRE'] == 'Fixa PJ'] if 'TORRE' in df_mig_card.columns else df_mig_card.iloc[0:0],
+    }
+    dcol1, dcol2, dcol3 = st.columns([1.25, 1, 1])
+    with dcol1:
+        detalhe_card_sel = st.selectbox("Ver pedidos do card", list(detalhe_opcoes.keys()), key="detalhe_card_visao_geral")
+    detalhe_df_base = detalhe_opcoes[detalhe_card_sel]
+    detalhe_df = pedidos_linhas_table(detalhe_df_base)
+    with dcol2:
+        st.markdown(card("Linhas no detalhe", f"{count_linhas(detalhe_df_base):,}".replace(",", "."), detalhe_card_sel), unsafe_allow_html=True)
+    with dcol3:
+        st.markdown(card("Pedidos no detalhe", f"{len(detalhe_df):,}".replace(",", "."), "pedidos únicos"), unsafe_allow_html=True)
+
+    if len(detalhe_df) > 0:
+        st.dataframe(
+            detalhe_df,
+            use_container_width=True,
+            height=320,
+            hide_index=True,
+            column_config={
+                "Valor Total": st.column_config.NumberColumn("Valor Total", format="R$ %.2f"),
+                "Linhas Consideradas": st.column_config.NumberColumn("Linhas Consideradas", format="%d"),
+            },
+        )
+    else:
+        st.info("Nenhum pedido encontrado para este card com os filtros atuais.")
 
     # Forecast executivo usando as três fontes do ETL atual:
     # RELATORIO_HISTORICO = concluído | TRAMITANDO = em tramitação | PREVISAO = em qualificação
@@ -1416,3 +1479,4 @@ with tab7:
 
 </div>
 """, unsafe_allow_html=True)
+
